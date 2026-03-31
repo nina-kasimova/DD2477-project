@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ doc.title }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <p><a href="{{ url_for('search', q=query) }}">Back to search</a></p>
+    <h1>{{ doc.title }}</h1>
+    <p>{{ doc.content }}</p>
+</body>
+</html>

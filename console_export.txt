@@ -1,0 +1,16 @@
+# Welcome to the Dev Tools Console!
+#
+# You can use Console to explore the Elasticsearch API. See the Elasticsearch API reference to learn more:
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html
+#
+# Here are a few examples to get you started.
+
+
+GET /wiki_index/_search
+{
+  "query": {
+    "match": {
+      "content": "april"
+    }
+  }
+}

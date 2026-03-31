@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Elastic Search UI</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+        form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 16px;
+            font-size: 16px;
+        }
+        .result {
+            border-top: 1px solid #ddd;
+            padding: 16px 0;
+        }
+        .meta {
+            color: #555;
+            font-size: 14px;
+        }
+        .error {
+            color: #b00020;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Elastic Search UI</h1>
+    <p>Searching index: <strong>{{ index_name }}</strong></p>
+
+    <form method="get">
+        <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search for something..."
+            autofocus
+        >
+        <button type="submit">Search</button>
+    </form>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if query and not results and not error %}
+        <p>No results found.</p>
+    {% endif %}
+
+    {% for hit in results %}
+        <div class="result">
+            <h2>
+                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
+                    {{ hit._source.title }}
+                </a>
+            </h2>
+            <div class="meta">Score: {{ hit._score }}</div>
+            <p>{{ hit._source.content[:400] }}{% if hit._source.content|length > 400 %}...{% endif %}</p>
+        </div>
+    {% endfor %}
+</body>
+</html>
