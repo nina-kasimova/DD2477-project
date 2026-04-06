@@ -3,76 +3,327 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Elastic Search UI</title>
+    <title>{% if query %}{{ query }} — Search{% else %}Personalized Search Engine{% endif %}</title>
+    <meta name="description" content="BM25-powered personalized search engine built on Elasticsearch">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #1e2130;
+            --bg-card-hover: #252840;
+            --border: #2a2d3e;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b0;
+            --text-muted: #6b7084;
+            --accent: #7c8aff;
+            --accent-dim: rgba(124, 138, 255, 0.12);
+            --accent-glow: rgba(124, 138, 255, 0.25);
+            --green: #4ade80;
+            --green-dim: rgba(74, 222, 128, 0.12);
+            --orange: #fb923c;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 16px;
-            line-height: 1.5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
         }
-        form {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 24px;
         }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            font-size: 16px;
+
+        /* ── header ─────────────────────────────────────────── */
+        header {
+            padding: 48px 0 32px;
+            text-align: center;
         }
-        button {
-            padding: 10px 16px;
-            font-size: 16px;
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
         }
-        .result {
-            border-top: 1px solid #ddd;
-            padding: 16px 0;
-        }
-        .meta {
-            color: #555;
+
+        .subtitle {
+            color: var(--text-muted);
             font-size: 14px;
         }
+
+        /* ── search form ────────────────────────────────────── */
+        .search-box {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .search-box form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input[type="text"] {
+            flex: 1;
+            padding: 14px 18px;
+            font-size: 16px;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-box input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .search-box input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-box button {
+            padding: 14px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+
+        .search-box button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .search-box button:active {
+            transform: translateY(0);
+        }
+
+        /* ── info bar ───────────────────────────────────────── */
+        .info-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .badge.accent {
+            background: var(--accent-dim);
+            border-color: rgba(124, 138, 255, 0.25);
+            color: var(--accent);
+        }
+
+        .badge.green {
+            background: var(--green-dim);
+            border-color: rgba(74, 222, 128, 0.25);
+            color: var(--green);
+        }
+
+        .results-meta {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-left: auto;
+        }
+
+        /* ── error ──────────────────────────────────────────── */
         .error {
-            color: #b00020;
-            margin-bottom: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        /* ── result cards ───────────────────────────────────── */
+        .result {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        }
+
+        .result:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(124, 138, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .result h2 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .result h2 a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .result h2 a:hover {
+            color: #a5b0ff;
+        }
+
+        .result-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .score {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--green);
+            background: var(--green-dim);
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+
+        .rank-num {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .explain-link {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .explain-link:hover {
+            color: var(--accent);
+        }
+
+        .snippet {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        /* ── footer ─────────────────────────────────────────── */
+        footer {
+            text-align: center;
+            padding: 40px 0 32px;
+            color: var(--text-muted);
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <h1>Elastic Search UI</h1>
-    <p>Searching index: <strong>{{ index_name }}</strong></p>
+    <div class="container">
+        <header>
+            <h1>Personalized Search Engine</h1>
+            <p class="subtitle">Static BM25 baseline · Elasticsearch</p>
+        </header>
 
-    <form method="get">
-        <input
-            type="text"
-            name="q"
-            value="{{ query }}"
-            placeholder="Search for something..."
-            autofocus
-        >
-        <button type="submit">Search</button>
-    </form>
-
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
-
-    {% if query and not results and not error %}
-        <p>No results found.</p>
-    {% endif %}
-
-    {% for hit in results %}
-        <div class="result">
-            <h2>
-                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
-                    {{ hit._source.title }}
-                </a>
-            </h2>
-            <div class="meta">Score: {{ hit._score }}</div>
-            <p>{{ hit._source.content[:400] }}{% if hit._source.content|length > 400 %}...{% endif %}</p>
+        <div class="search-box">
+            <form method="get" id="search-form">
+                <input
+                    type="text"
+                    name="q"
+                    id="search-input"
+                    value="{{ query }}"
+                    placeholder="Search Wikipedia articles …"
+                    autofocus
+                >
+                <button type="submit" id="search-button">Search</button>
+            </form>
         </div>
-    {% endfor %}
+
+        {% if error %}
+            <div class="error" id="error-message">{{ error }}</div>
+        {% endif %}
+
+        {% if query %}
+            <div class="info-bar">
+                <span class="badge accent" id="bm25-badge" title="BM25 scoring parameters">
+                    BM25 · k1={{ bm25.k1 }} · b={{ bm25.b }}
+                </span>
+                <span class="badge green" id="index-badge">{{ index_name }}</span>
+                {% if results %}
+                    <span class="results-meta" id="results-meta">
+                        {{ total_hits }} results in {{ search_time_ms }}ms
+                    </span>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if query and not results and not error %}
+            <div class="no-results" id="no-results">No results found for "<strong>{{ query }}</strong>"</div>
+        {% endif %}
+
+        {% for hit in results %}
+            <div class="result" id="result-{{ loop.index }}">
+                <h2>
+                    <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
+                        {{ hit._source.title }}
+                    </a>
+                </h2>
+                <div class="result-meta">
+                    <span class="rank-num">#{{ loop.index }}</span>
+                    <span class="score" id="score-{{ loop.index }}">{{ "%.4f"|format(hit._score) }}</span>
+                    <a class="explain-link" id="explain-{{ loop.index }}"
+                       href="{{ url_for('explain', doc_id=hit._id, q=query) }}"
+                       title="View BM25 scoring breakdown">
+                        ⓘ Explain
+                    </a>
+                </div>
+                <p class="snippet">
+                    {{ hit._source.content[:350] }}{% if hit._source.content|length > 350 %} …{% endif %}
+                </p>
+            </div>
+        {% endfor %}
+
+        <footer>
+            DD2477 Project · Personalized Search Engine
+        </footer>
+    </div>
 </body>
 </html>
