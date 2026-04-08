@@ -1,5 +1,6 @@
 """
-Flask search UI backed by Elasticsearch with explicit BM25 scoring.
+Flask search UI backed by Elasticsearch with explicit BM25 scoring
+and personalised re-ranking from user click history.
 """
 
 import json
@@ -7,11 +8,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from elasticsearch import Elasticsearch, NotFoundError
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
 from markupsafe import Markup
 
+from user_profile import (
+    ALPHA,
+    get_history_stats,
+    get_interest_terms,
+    personalise,
+    sync_history,
+)
+
 app = Flask(__name__)
-es = Elasticsearch("http://localhost:9200")
+es = Elasticsearch(
+    "https://my-elasticsearch-project-a21c67.es.us-central1.gcp.elastic.cloud:443",
+    api_key="b3M5VmJKMEJtYkNiV0x5WExmcno6VkRXMVZmcUhuS2oxd1JZSkI0eS1OZw=="
+)
 
 
 def render_explanation(node, depth=0):
@@ -71,6 +83,7 @@ def _get_bm25_params() -> dict:
 @app.route("/", methods=["GET"])
 def search():
     query_text = request.args.get("q", "").strip()
+    personalised = request.args.get("personalised", "1") == "1"
     results = []
     total_hits = 0
     search_time_ms = 0
@@ -107,10 +120,19 @@ def search():
             results = response["hits"]["hits"]
             total_hits = response["hits"]["total"]["value"]
             search_time_ms = response.get("took", 0)
+
+            # ── personalise results ──────────────────────────────
+            if personalised and results:
+                results = personalise(es, query_text, results)
+
         except Exception as exc:
             error = str(exc)
 
     bm25 = _get_bm25_params()
+
+    # Get user profile stats for the sidebar
+    history_stats = get_history_stats(es)
+    interest_terms = get_interest_terms(es, max_terms=15)
 
     return render_template(
         "search.html",
@@ -121,6 +143,10 @@ def search():
         error=error,
         index_name=INDEX_NAME,
         bm25=bm25,
+        personalised=personalised,
+        alpha=ALPHA,
+        history_stats=history_stats,
+        interest_terms=interest_terms,
     )
 
 
@@ -142,6 +168,12 @@ def track_click(doc_id):
             )
             + "\n"
         )
+
+    # Auto-sync history after each click
+    try:
+        sync_history(es)
+    except Exception:
+        pass  # Non-critical — don't block the user
 
     return redirect(url_for("document", doc_id=doc_id, q=query_text))
 
@@ -218,5 +250,50 @@ def explain(doc_id):
     )
 
 
+# ── API routes for profile management ───────────────────────────────────────
+@app.route("/api/sync-history", methods=["POST"])
+def api_sync_history():
+    """Manually trigger a sync of click_log → user_history index."""
+    result = sync_history(es)
+    return jsonify(result)
+
+
+@app.route("/api/profile", methods=["GET"])
+def api_profile():
+    """Return the user's interest profile as JSON."""
+    stats = get_history_stats(es)
+    terms = get_interest_terms(es)
+    return jsonify({"stats": stats, "interest_terms": terms})
+
+
+@app.route("/profile", methods=["GET"])
+def profile_page():
+    """Full-page user profile dashboard."""
+    stats = get_history_stats(es)
+    terms = get_interest_terms(es)
+    clicks = []
+    try:
+        from user_profile import read_click_log
+        clicks = read_click_log()
+        # Reverse to show most recent first
+        clicks.reverse()
+    except Exception:
+        pass
+
+    return render_template(
+        "profile.html",
+        stats=stats,
+        interest_terms=terms,
+        clicks=clicks,
+    )
+
+
 if __name__ == "__main__":
+    # Sync history on startup
+    try:
+        sync_history(es)
+        print("✓ User history synced on startup")
+    except Exception as exc:
+        print(f"✗ Could not sync history: {exc}")
+
     app.run(debug=True)

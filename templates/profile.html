@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Profile — Personalized Search Engine</title>
+    <meta name="description" content="User interest profile and click history dashboard">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #1e2130;
+            --bg-card-hover: #252840;
+            --border: #2a2d3e;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b0;
+            --text-muted: #6b7084;
+            --accent: #7c8aff;
+            --accent-dim: rgba(124, 138, 255, 0.12);
+            --green: #4ade80;
+            --green-dim: rgba(74, 222, 128, 0.12);
+            --orange: #fb923c;
+            --orange-dim: rgba(251, 146, 60, 0.12);
+            --purple: #a78bfa;
+            --purple-dim: rgba(167, 139, 250, 0.12);
+            --cyan: #22d3ee;
+            --cyan-dim: rgba(34, 211, 238, 0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── header ────────────────────────────────────────── */
+        header {
+            padding: 40px 0 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover { color: #a5b0ff; }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--purple), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        /* ── stats grid ────────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(124, 138, 255, 0.3);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-number.accent { color: var(--accent); }
+        .stat-number.green { color: var(--green); }
+        .stat-number.orange { color: var(--orange); }
+
+        .stat-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* ── sections ──────────────────────────────────────── */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section h2 .icon {
+            font-size: 20px;
+        }
+
+        /* ── interest terms ────────────────────────────────── */
+        .interest-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .cloud-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 20px;
+            background: var(--purple-dim);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            color: var(--purple);
+            transition: transform 0.15s, box-shadow 0.15s;
+            cursor: default;
+        }
+
+        .cloud-tag:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(167, 139, 250, 0.15);
+        }
+
+        .cloud-tag .score {
+            font-size: 11px;
+            opacity: 0.6;
+            font-weight: 400;
+        }
+
+        .cloud-tag.top-1 {
+            font-size: 18px;
+            padding: 10px 20px;
+            background: var(--accent-dim);
+            border-color: rgba(124, 138, 255, 0.25);
+            color: var(--accent);
+        }
+
+        .cloud-tag.top-3 {
+            font-size: 16px;
+            padding: 9px 18px;
+        }
+
+        /* ── click history table ───────────────────────────── */
+        .history-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(42, 45, 62, 0.4);
+        }
+
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .history-table tr:hover td {
+            background: rgba(124, 138, 255, 0.04);
+        }
+
+        .query-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            font-size: 12px;
+            border-radius: 10px;
+            background: var(--cyan-dim);
+            color: var(--cyan);
+            font-weight: 500;
+        }
+
+        .rank-pill {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .time-ago {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ── how it works ──────────────────────────────────── */
+        .explanation {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .explanation p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .explanation p:last-child { margin-bottom: 0; }
+
+        .formula {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+            font-size: 14px;
+            color: var(--accent);
+            margin: 8px 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0 32px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a class="back-link" href="{{ url_for('search') }}" id="back-to-search">← Back to search</a>
+            <h1>User Profile</h1>
+            <p class="page-subtitle">Your search interests built from click history via BM25</p>
+        </header>
+
+        <!-- ── stats ──────────────────────────────────────── -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number accent">{{ stats.total_docs }}</div>
+                <div class="stat-title">Documents Clicked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number green">{{ stats.total_clicks }}</div>
+                <div class="stat-title">Total Clicks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number orange">{{ stats.unique_queries }}</div>
+                <div class="stat-title">Unique Queries</div>
+            </div>
+        </div>
+
+        <!-- ── interest terms ─────────────────────────────── -->
+        <div class="section">
+            <h2><span class="icon">✦</span> Interest Profile</h2>
+            {% if interest_terms %}
+                <div class="interest-cloud">
+                    {% for term in interest_terms %}
+                        <span class="cloud-tag {% if loop.index == 1 %}top-1{% elif loop.index <= 3 %}top-3{% endif %}">
+                            {{ term.term }}
+                            <span class="score">{{ term.score }}</span>
+                        </span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    No interest terms extracted yet. Click on search results to build your profile.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- ── how it works ───────────────────────────────── -->
+        <div class="section">
+            <h2><span class="icon">⚙</span> How Personalisation Works</h2>
+            <div class="explanation">
+                <p>
+                    When you click a search result, the document is copied into a personal
+                    <strong>user_history</strong> Elasticsearch index. This index uses the same
+                    BM25 similarity settings as the main wiki index.
+                </p>
+                <p>
+                    When you perform a new search with personalisation enabled, your query is run
+                    through BM25 on both the main index and your history index. The final score is
+                    a weighted blend:
+                </p>
+                <span class="formula">
+                    final = (1 − α) × BM25<sub>main</sub> + α × BM25<sub>history</sub>
+                </span>
+                <p>
+                    Documents that match your past interests (based on what you've clicked) will
+                    receive a boost and may be re-ranked higher. The α parameter controls how
+                    aggressively personalisation affects results.
+                </p>
+            </div>
+        </div>
+
+        <!-- ── click history ──────────────────────────────── -->
+        <div class="section">
+            <h2><span class="icon">🕒</span> Recent Click History</h2>
+            {% if clicks %}
+                <div class="history-card">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Query</th>
+                                <th>Document ID</th>
+                                <th>Rank</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for click in clicks[:20] %}
+                            <tr>
+                                <td><span class="query-pill">{{ click.query }}</span></td>
+                                <td style="font-family: monospace; font-size: 11px; color: var(--text-muted);">
+                                    {{ click.doc_id[:16] }}…
+                                </td>
+                                <td><span class="rank-pill">{{ click.rank }}</span></td>
+                                <td><span class="time-ago">{{ click.timestamp[:19] }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    No click history yet. Search for something and click on results!
+                </div>
+            {% endif %}
+        </div>
+
+        <footer>
+            DD2477 Project · Personalized Search Engine
+        </footer>
+    </div>
+</body>
+</html>

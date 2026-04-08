@@ -5,3 +5,9 @@
 {"timestamp": "2026-03-31T15:34:39.389971+00:00", "doc_id": "hZdxRJ0BHiH0I94j4cEg", "query": "april", "rank": 3}
 {"timestamp": "2026-03-31T15:40:48.581853+00:00", "doc_id": "P5eMRJ0BHiH0I94jrNDv", "query": "science", "rank": 2}
 {"timestamp": "2026-03-31T15:40:52.402909+00:00", "doc_id": "bpeMRJ0BHiH0I94jrNDv", "query": "science", "rank": 3}
+{"timestamp": "2026-04-08T11:23:32.538991+00:00", "doc_id": "lc9mbJ0BmbCbWLyXcfu0", "query": "plant", "rank": 1}
+{"timestamp": "2026-04-08T11:23:58.761397+00:00", "doc_id": "L89mbJ0BmbCbWLyXcfy0", "query": "apple", "rank": 1}
+{"timestamp": "2026-04-08T11:24:13.454620+00:00", "doc_id": "Ns9mbJ0BmbCbWLyXcfy0", "query": "apple", "rank": 2}
+{"timestamp": "2026-04-08T11:52:54.237193+00:00", "doc_id": "GdDsbJ0BmbCbWLyXhy_b", "query": "pear", "rank": 1}
+{"timestamp": "2026-04-08T11:53:30.084108+00:00", "doc_id": "mNDsbJ0BmbCbWLyX11DY", "query": "banana", "rank": 2}
+{"timestamp": "2026-04-08T11:53:36.112820+00:00", "doc_id": "jtDsbJ0BmbCbWLyX11DY", "query": "banana", "rank": 3}

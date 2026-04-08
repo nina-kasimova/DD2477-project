@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% if query %}{{ query }} — Search{% else %}Personalized Search Engine{% endif %}</title>
-    <meta name="description" content="BM25-powered personalized search engine built on Elasticsearch">
+    <meta name="description" content="BM25-powered personalized search engine built on Elasticsearch with user history re-ranking">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -22,6 +22,11 @@
             --green: #4ade80;
             --green-dim: rgba(74, 222, 128, 0.12);
             --orange: #fb923c;
+            --orange-dim: rgba(251, 146, 60, 0.12);
+            --purple: #a78bfa;
+            --purple-dim: rgba(167, 139, 250, 0.12);
+            --cyan: #22d3ee;
+            --cyan-dim: rgba(34, 211, 238, 0.12);
             --radius: 12px;
             --radius-sm: 8px;
         }
@@ -35,15 +40,34 @@
             min-height: 100vh;
         }
 
-        .container {
-            max-width: 860px;
+        /* ── layout ────────────────────────────────────────── */
+        .page-layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 32px;
+            max-width: 1160px;
             margin: 0 auto;
             padding: 0 24px;
         }
 
-        /* ── header ─────────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .page-layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar { order: -1; }
+        }
+
+        .main-content { min-width: 0; }
+
+        /* ── header ────────────────────────────────────────── */
+        .full-width {
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
         header {
-            padding: 48px 0 32px;
+            padding: 40px 0 28px;
             text-align: center;
         }
 
@@ -63,10 +87,10 @@
             font-size: 14px;
         }
 
-        /* ── search form ────────────────────────────────────── */
+        /* ── search form ───────────────────────────────────── */
         .search-box {
-            position: relative;
-            margin-bottom: 24px;
+            max-width: 860px;
+            margin: 0 auto 24px;
         }
 
         .search-box form {
@@ -92,9 +116,7 @@
             box-shadow: 0 0 0 3px var(--accent-dim);
         }
 
-        .search-box input[type="text"]::placeholder {
-            color: var(--text-muted);
-        }
+        .search-box input[type="text"]::placeholder { color: var(--text-muted); }
 
         .search-box button {
             padding: 14px 28px;
@@ -114,11 +136,85 @@
             box-shadow: 0 4px 16px var(--accent-glow);
         }
 
-        .search-box button:active {
-            transform: translateY(0);
+        .search-box button:active { transform: translateY(0); }
+
+        /* ── personalisation toggle ────────────────────────── */
+        .personalise-bar {
+            max-width: 860px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
         }
 
-        /* ── info bar ───────────────────────────────────────── */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle {
+            position: relative;
+            width: 42px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 2px;
+            top: 2px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: transform 0.25s, background 0.25s;
+        }
+
+        .toggle input:checked + .toggle-track {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .toggle input:checked + .toggle-track::after {
+            transform: translateX(18px);
+            background: var(--accent);
+        }
+
+        .alpha-badge {
+            font-size: 11px;
+            color: var(--orange);
+            background: var(--orange-dim);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        /* ── info bar ──────────────────────────────────────── */
         .info-bar {
             display: flex;
             align-items: center;
@@ -152,13 +248,19 @@
             color: var(--green);
         }
 
+        .badge.orange {
+            background: var(--orange-dim);
+            border-color: rgba(251, 146, 60, 0.25);
+            color: var(--orange);
+        }
+
         .results-meta {
             color: var(--text-muted);
             font-size: 13px;
             margin-left: auto;
         }
 
-        /* ── error ──────────────────────────────────────────── */
+        /* ── error ─────────────────────────────────────────── */
         .error {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
@@ -176,7 +278,7 @@
             font-size: 15px;
         }
 
-        /* ── result cards ───────────────────────────────────── */
+        /* ── result cards ──────────────────────────────────── */
         .result {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -184,6 +286,7 @@
             padding: 20px 24px;
             margin-bottom: 12px;
             transition: background 0.2s, border-color 0.2s, transform 0.15s;
+            position: relative;
         }
 
         .result:hover {
@@ -192,11 +295,31 @@
             transform: translateY(-1px);
         }
 
+        .result.boosted {
+            border-left: 3px solid var(--orange);
+        }
+
+        .result.boosted::before {
+            content: '★ Personalised';
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--orange);
+            background: var(--orange-dim);
+            padding: 2px 8px;
+            border-radius: 8px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
         .result h2 {
             font-size: 17px;
             font-weight: 600;
             margin-bottom: 6px;
             line-height: 1.4;
+            padding-right: 110px;
         }
 
         .result h2 a {
@@ -205,24 +328,38 @@
             transition: color 0.15s;
         }
 
-        .result h2 a:hover {
-            color: #a5b0ff;
-        }
+        .result h2 a:hover { color: #a5b0ff; }
 
         .result-meta {
             display: flex;
             align-items: center;
             gap: 14px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .score {
             font-size: 13px;
             font-weight: 500;
-            color: var(--green);
-            background: var(--green-dim);
             padding: 2px 10px;
             border-radius: 12px;
+        }
+
+        .score.final {
+            color: var(--green);
+            background: var(--green-dim);
+        }
+
+        .score.original {
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            font-size: 11px;
+        }
+
+        .score.personal {
+            color: var(--orange);
+            background: var(--orange-dim);
+            font-size: 11px;
         }
 
         .rank-num {
@@ -237,9 +374,7 @@
             transition: color 0.15s;
         }
 
-        .explain-link:hover {
-            color: var(--accent);
-        }
+        .explain-link:hover { color: var(--accent); }
 
         .snippet {
             color: var(--text-secondary);
@@ -247,22 +382,164 @@
             line-height: 1.65;
         }
 
-        /* ── footer ─────────────────────────────────────────── */
+        /* ── sidebar ───────────────────────────────────────── */
+        .sidebar {
+            position: sticky;
+            top: 24px;
+            height: fit-content;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .sidebar-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(42, 45, 62, 0.5);
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ── interest tags ─────────────────────────────────── */
+        .interest-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .interest-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 14px;
+            background: var(--purple-dim);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            color: var(--purple);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .interest-tag:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(167, 139, 250, 0.2);
+        }
+
+        .interest-tag .tag-score {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        .empty-state {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .profile-link {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .profile-link:hover { color: #a5b0ff; }
+
+        .sync-btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .sync-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .sync-btn.syncing {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* ── footer ────────────────────────────────────────── */
         footer {
             text-align: center;
             padding: 40px 0 32px;
             color: var(--text-muted);
             font-size: 12px;
         }
+
+        /* ── animation ─────────────────────────────────────── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .result {
+            animation: fadeInUp 0.3s ease both;
+        }
+
+        .result:nth-child(1) { animation-delay: 0.02s; }
+        .result:nth-child(2) { animation-delay: 0.06s; }
+        .result:nth-child(3) { animation-delay: 0.10s; }
+        .result:nth-child(4) { animation-delay: 0.14s; }
+        .result:nth-child(5) { animation-delay: 0.18s; }
+        .result:nth-child(6) { animation-delay: 0.22s; }
+        .result:nth-child(7) { animation-delay: 0.26s; }
+        .result:nth-child(8) { animation-delay: 0.30s; }
+        .result:nth-child(9) { animation-delay: 0.34s; }
+        .result:nth-child(10) { animation-delay: 0.38s; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Personalized Search Engine</h1>
-            <p class="subtitle">Static BM25 baseline · Elasticsearch</p>
-        </header>
+    <header class="full-width">
+        <h1>Personalized Search Engine</h1>
+        <p class="subtitle">BM25 + User History Re-ranking · Elasticsearch</p>
+    </header>
 
+    <div class="full-width">
         <div class="search-box">
             <form method="get" id="search-form">
                 <input
@@ -273,57 +550,172 @@
                     placeholder="Search Wikipedia articles …"
                     autofocus
                 >
+                <input type="hidden" name="personalised" id="personalised-input" value="{{ '1' if personalised else '0' }}">
                 <button type="submit" id="search-button">Search</button>
             </form>
         </div>
 
-        {% if error %}
-            <div class="error" id="error-message">{{ error }}</div>
-        {% endif %}
-
-        {% if query %}
-            <div class="info-bar">
-                <span class="badge accent" id="bm25-badge" title="BM25 scoring parameters">
-                    BM25 · k1={{ bm25.k1 }} · b={{ bm25.b }}
+        <div class="personalise-bar">
+            <div class="toggle-wrapper">
+                <label class="toggle" id="personalise-toggle">
+                    <input type="checkbox" {% if personalised %}checked{% endif %} onchange="togglePersonalisation(this)">
+                    <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label" onclick="document.querySelector('#personalise-toggle input').click()">
+                    Personalised ranking
                 </span>
-                <span class="badge green" id="index-badge">{{ index_name }}</span>
-                {% if results %}
-                    <span class="results-meta" id="results-meta">
-                        {{ total_hits }} results in {{ search_time_ms }}ms
+            </div>
+            {% if personalised %}
+                <span class="alpha-badge" title="Blending weight: {{ '%.0f'|format(alpha * 100) }}% user history, {{ '%.0f'|format((1 - alpha) * 100) }}% BM25">
+                    α = {{ alpha }}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="page-layout">
+        <div class="main-content">
+            {% if error %}
+                <div class="error" id="error-message">{{ error }}</div>
+            {% endif %}
+
+            {% if query %}
+                <div class="info-bar">
+                    <span class="badge accent" id="bm25-badge" title="BM25 scoring parameters">
+                        BM25 · k1={{ bm25.k1 }} · b={{ bm25.b }}
                     </span>
+                    <span class="badge green" id="index-badge">{{ index_name }}</span>
+                    {% if personalised %}
+                        <span class="badge orange" id="personalised-badge">✦ Personalised</span>
+                    {% endif %}
+                    {% if results %}
+                        <span class="results-meta" id="results-meta">
+                            {{ total_hits }} results in {{ search_time_ms }}ms
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if query and not results and not error %}
+                <div class="no-results" id="no-results">No results found for "<strong>{{ query }}</strong>"</div>
+            {% endif %}
+
+            {% for hit in results %}
+                <div class="result {% if hit._boosted %}boosted{% endif %}" id="result-{{ loop.index }}">
+                    <h2>
+                        <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
+                            {{ hit._source.title }}
+                        </a>
+                    </h2>
+                    <div class="result-meta">
+                        <span class="rank-num">#{{ loop.index }}</span>
+
+                        {% if personalised and hit._final_score is defined %}
+                            <span class="score final" id="score-{{ loop.index }}" title="Blended score">
+                                {{ "%.4f"|format(hit._final_score) }}
+                            </span>
+                            <span class="score original" title="Original BM25 score">
+                                BM25: {{ "%.4f"|format(hit._original_score) }}
+                            </span>
+                            {% if hit._personal_score > 0 %}
+                                <span class="score personal" title="User history BM25 score">
+                                    History: {{ "%.4f"|format(hit._personal_score) }}
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="score final" id="score-{{ loop.index }}">{{ "%.4f"|format(hit._score) }}</span>
+                        {% endif %}
+
+                        <a class="explain-link" id="explain-{{ loop.index }}"
+                           href="{{ url_for('explain', doc_id=hit._id, q=query) }}"
+                           title="View BM25 scoring breakdown">
+                            ⓘ Explain
+                        </a>
+                    </div>
+                    <p class="snippet">
+                        {{ hit._source.content[:350] }}{% if hit._source.content|length > 350 %} …{% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+
+            <footer>
+                DD2477 Project · Personalized Search Engine
+            </footer>
+        </div>
+
+        <!-- ── sidebar: user profile ──────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <h3>User Profile</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Clicked docs</span>
+                    <span class="stat-value">{{ history_stats.total_docs }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total clicks</span>
+                    <span class="stat-value">{{ history_stats.total_clicks }}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Unique queries</span>
+                    <span class="stat-value">{{ history_stats.unique_queries }}</span>
+                </div>
+                <button class="sync-btn" id="sync-btn" onclick="syncHistory()">
+                    ⟳ Sync History
+                </button>
+                <a class="profile-link" href="{{ url_for('profile_page') }}" id="view-profile-link">
+                    View full profile →
+                </a>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>Interest Terms</h3>
+                {% if interest_terms %}
+                    <div class="interest-tags">
+                        {% for term in interest_terms %}
+                            <span class="interest-tag" title="Significance: {{ term.score }}">
+                                {{ term.term }}
+                                <span class="tag-score">{{ term.score }}</span>
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        No interests yet.<br>Click on some search results!
+                    </div>
                 {% endif %}
             </div>
-        {% endif %}
-
-        {% if query and not results and not error %}
-            <div class="no-results" id="no-results">No results found for "<strong>{{ query }}</strong>"</div>
-        {% endif %}
-
-        {% for hit in results %}
-            <div class="result" id="result-{{ loop.index }}">
-                <h2>
-                    <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
-                        {{ hit._source.title }}
-                    </a>
-                </h2>
-                <div class="result-meta">
-                    <span class="rank-num">#{{ loop.index }}</span>
-                    <span class="score" id="score-{{ loop.index }}">{{ "%.4f"|format(hit._score) }}</span>
-                    <a class="explain-link" id="explain-{{ loop.index }}"
-                       href="{{ url_for('explain', doc_id=hit._id, q=query) }}"
-                       title="View BM25 scoring breakdown">
-                        ⓘ Explain
-                    </a>
-                </div>
-                <p class="snippet">
-                    {{ hit._source.content[:350] }}{% if hit._source.content|length > 350 %} …{% endif %}
-                </p>
-            </div>
-        {% endfor %}
-
-        <footer>
-            DD2477 Project · Personalized Search Engine
-        </footer>
+        </aside>
     </div>
+
+    <script>
+        function togglePersonalisation(checkbox) {
+            document.getElementById('personalised-input').value = checkbox.checked ? '1' : '0';
+            // If there's a query, resubmit the form
+            const q = document.getElementById('search-input').value.trim();
+            if (q) {
+                document.getElementById('search-form').submit();
+            }
+        }
+
+        async function syncHistory() {
+            const btn = document.getElementById('sync-btn');
+            btn.classList.add('syncing');
+            btn.textContent = '⟳ Syncing…';
+            try {
+                const resp = await fetch('/api/sync-history', { method: 'POST' });
+                const data = await resp.json();
+                btn.textContent = `✓ ${data.total_in_history} docs in history`;
+                setTimeout(() => {
+                    btn.textContent = '⟳ Sync History';
+                    btn.classList.remove('syncing');
+                    // Reload to refresh interest terms
+                    window.location.reload();
+                }, 1500);
+            } catch (e) {
+                btn.textContent = '✗ Sync failed';
+                btn.classList.remove('syncing');
+            }
+        }
+    </script>
 </body>
 </html>
