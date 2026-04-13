@@ -536,7 +536,7 @@
 <body>
     <header class="full-width">
         <h1>Personalized Search Engine</h1>
-        <p class="subtitle">BM25 + User History Re-ranking · Elasticsearch</p>
+        <p class="subtitle">BM25 + User History Re-ranking + Contextual Bandit · Elasticsearch</p>
     </header>
 
     <div class="full-width">
@@ -551,6 +551,7 @@
                     autofocus
                 >
                 <input type="hidden" name="personalised" id="personalised-input" value="{{ '1' if personalised else '0' }}">
+                <input type="hidden" name="bandit" id="bandit-input" value="{{ '1' if use_bandit else '0' }}">
                 <button type="submit" id="search-button">Search</button>
             </form>
         </div>
@@ -565,9 +566,23 @@
                     Personalised ranking
                 </span>
             </div>
+            <div class="toggle-wrapper">
+                <label class="toggle" id="bandit-toggle">
+                    <input type="checkbox" {% if use_bandit %}checked{% endif %} onchange="toggleBandit(this)">
+                    <span class="toggle-track"></span>
+                </label>
+                <span class="toggle-label" onclick="document.querySelector('#bandit-toggle input').click()">
+                    Contextual Bandit
+                </span>
+            </div>
             {% if personalised %}
                 <span class="alpha-badge" title="Blending weight: {{ '%.0f'|format(alpha * 100) }}% user history, {{ '%.0f'|format((1 - alpha) * 100) }}% BM25">
                     α = {{ alpha }}
+                </span>
+            {% endif %}
+            {% if use_bandit %}
+                <span class="alpha-badge" style="color: var(--cyan); background: var(--cyan-dim);" title="LinUCB contextual bandit re-ranking active">
+                    🎰 LinUCB
                 </span>
             {% endif %}
         </div>
@@ -588,6 +603,9 @@
                     {% if personalised %}
                         <span class="badge orange" id="personalised-badge">✦ Personalised</span>
                     {% endif %}
+                    {% if use_bandit %}
+                        <span class="badge" id="bandit-badge" style="background: var(--cyan-dim); border-color: rgba(34, 211, 238, 0.25); color: var(--cyan);">🎰 Bandit · {{ bandit_arms }} arms</span>
+                    {% endif %}
                     {% if results %}
                         <span class="results-meta" id="results-meta">
                             {{ total_hits }} results in {{ search_time_ms }}ms
@@ -601,9 +619,9 @@
             {% endif %}
 
             {% for hit in results %}
-                <div class="result {% if hit._boosted %}boosted{% endif %}" id="result-{{ loop.index }}">
+                <div class="result {% if hit._boosted %}boosted{% endif %}" id="result-{{ loop.index }}" data-doc-id="{{ hit._id }}" data-score="{{ hit._score }}">
                     <h2>
-                        <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
+                        <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}" onclick="sendBanditFeedback('{{ hit._id }}')">
                             {{ hit._source.title }}
                         </a>
                     </h2>
@@ -624,6 +642,15 @@
                             {% endif %}
                         {% else %}
                             <span class="score final" id="score-{{ loop.index }}">{{ "%.4f"|format(hit._score) }}</span>
+                        {% endif %}
+
+                        {% if use_bandit and hit._bandit_ucb is defined %}
+                            <span class="score" style="color: var(--cyan); background: var(--cyan-dim); font-size: 11px;" title="LinUCB upper confidence bound">
+                                UCB: {{ "%.4f"|format(hit._bandit_ucb) }}
+                            </span>
+                            <span class="score" style="color: var(--text-muted); background: var(--bg-secondary); font-size: 10px;" title="Predicted reward (exploitation) vs exploration bonus">
+                                pred={{ "%.3f"|format(hit._bandit_pred) }} +expl={{ "%.3f"|format(hit._bandit_exploration) }}
+                            </span>
                         {% endif %}
 
                         <a class="explain-link" id="explain-{{ loop.index }}"
@@ -659,6 +686,10 @@
                     <span class="stat-label">Unique queries</span>
                     <span class="stat-value">{{ history_stats.unique_queries }}</span>
                 </div>
+                <div class="stat-row">
+                    <span class="stat-label">Bandit arms</span>
+                    <span class="stat-value" style="color: var(--cyan);">{{ bandit_arms }}</span>
+                </div>
                 <button class="sync-btn" id="sync-btn" onclick="syncHistory()">
                     ⟳ Sync History
                 </button>
@@ -690,11 +721,47 @@
     <script>
         function togglePersonalisation(checkbox) {
             document.getElementById('personalised-input').value = checkbox.checked ? '1' : '0';
-            // If there's a query, resubmit the form
             const q = document.getElementById('search-input').value.trim();
             if (q) {
                 document.getElementById('search-form').submit();
             }
+        }
+
+        function toggleBandit(checkbox) {
+            document.getElementById('bandit-input').value = checkbox.checked ? '1' : '0';
+            // Also enable personalisation if bandit is on
+            if (checkbox.checked) {
+                document.getElementById('personalised-input').value = '1';
+                document.querySelector('#personalise-toggle input').checked = true;
+            }
+            const q = document.getElementById('search-input').value.trim();
+            if (q) {
+                document.getElementById('search-form').submit();
+            }
+        }
+
+        function sendBanditFeedback(clickedDocId) {
+            // Collect shown result doc IDs and scores from the page
+            const results = document.querySelectorAll('.result[data-doc-id]');
+            const shownDocIds = [];
+            const shownScores = [];
+            results.forEach(el => {
+                shownDocIds.push(el.dataset.docId);
+                shownScores.push(parseFloat(el.dataset.score) || 1.0);
+            });
+            const query = document.getElementById('search-input').value.trim();
+
+            // Fire-and-forget: send feedback asynchronously
+            fetch('/api/bandit-feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: query,
+                    clicked_doc_id: clickedDocId,
+                    shown_doc_ids: shownDocIds,
+                    shown_scores: shownScores,
+                }),
+            }).catch(() => {});
         }
 
         async function syncHistory() {
@@ -708,7 +775,6 @@
                 setTimeout(() => {
                     btn.textContent = '⟳ Sync History';
                     btn.classList.remove('syncing');
-                    // Reload to refresh interest terms
                     window.location.reload();
                 }, 1500);
             } catch (e) {

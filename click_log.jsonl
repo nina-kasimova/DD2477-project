@@ -11,3 +11,10 @@
 {"timestamp": "2026-04-08T11:52:54.237193+00:00", "doc_id": "GdDsbJ0BmbCbWLyXhy_b", "query": "pear", "rank": 1}
 {"timestamp": "2026-04-08T11:53:30.084108+00:00", "doc_id": "mNDsbJ0BmbCbWLyX11DY", "query": "banana", "rank": 2}
 {"timestamp": "2026-04-08T11:53:36.112820+00:00", "doc_id": "jtDsbJ0BmbCbWLyX11DY", "query": "banana", "rank": 3}
+{"timestamp": "2026-04-08T13:03:06.471218+00:00", "doc_id": "n9DsbJ0BmbCbWLyXmTVN", "query": "apple", "rank": 2}
+{"timestamp": "2026-04-08T14:05:14.381699+00:00", "doc_id": "DtBnbZ0BmbCbWLyXyGCH", "query": "apple", "rank": 2}
+{"timestamp": "2026-04-08T14:05:30.894649+00:00", "doc_id": "C9BnbZ0BmbCbWLyXyGCH", "query": "apple", "rank": 4}
+{"timestamp": "2026-04-12T16:37:08.768154+00:00", "doc_id": "k7CIgp0B4vSQ-t2EhWbi", "query": "pear", "rank": 1}
+{"timestamp": "2026-04-12T16:39:09.042822+00:00", "doc_id": "GbCIgp0B4vSQ-t2Etm26", "query": "apple", "rank": 1}
+{"timestamp": "2026-04-12T16:44:48.600131+00:00", "doc_id": "HrCIgp0B4vSQ-t2EyXE7", "query": "science", "rank": 7}
+{"timestamp": "2026-04-12T16:46:16.148652+00:00", "doc_id": "vrCIgp0B4vSQ-t2E5nd8", "query": "science", "rank": 2}

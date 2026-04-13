@@ -22,6 +22,8 @@ from pathlib import Path
 
 from elasticsearch import Elasticsearch, NotFoundError, helpers
 
+from contextual_bandit import bandit_rerank
+
 CLICK_LOG = Path("click_log.jsonl")
 MAIN_INDEX = "wiki_index"
 HISTORY_INDEX = "user_history"
@@ -55,6 +57,9 @@ HISTORY_SETTINGS = {
             "content": {
                 "type": "text",
                 "similarity": "custom_bm25",
+            },
+            "content_semantic": {
+                "type": "semantic_text",
             },
             "query": {
                 "type": "text",
@@ -155,6 +160,7 @@ def sync_history(es: Elasticsearch) -> dict:
             history_doc = {
                 "title": source.get("title", ""),
                 "content": source.get("content", ""),
+                "content_semantic": source.get("content", ""),
                 "query": " | ".join(sorted(all_queries_set)),
                 "click_count": current_count + len(click_entries),
                 "last_clicked": latest_ts,
@@ -177,7 +183,7 @@ def sync_history(es: Elasticsearch) -> dict:
 
 
 def personalise(es: Elasticsearch, query: str, main_results: list[dict],
-                alpha: float = ALPHA) -> list[dict]:
+                alpha: float = ALPHA, use_bandit: bool = False) -> list[dict]:
     """
     Re-rank main_results by blending the original BM25 score with a
     personalisation score from the user_history index.
@@ -219,6 +225,7 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
                         {"match": {"title": {"query": query, "boost": 2.0}}},
                         {"match": {"content": {"query": query}}},
                         {"match": {"query": {"query": query, "boost": 1.5}}},
+                        {"semantic": {"field": "content_semantic", "query": query}},
                     ]
                 }
             },
@@ -260,8 +267,15 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
         # Scale back to original-score magnitude so values stay intuitive
         hit["_final_score"] = blended * max_orig
 
-    # Re-sort by final score descending
-    main_results.sort(key=lambda h: h["_final_score"], reverse=True)
+    # ── contextual bandit re-ranking ─────────────────────────────────
+    if use_bandit:
+        click_entries = read_click_log()
+        main_results = bandit_rerank(
+            es, query, main_results, history_scores, click_entries
+        )
+    else:
+        # Re-sort by final score descending
+        main_results.sort(key=lambda h: h["_final_score"], reverse=True)
     return main_results
 
 

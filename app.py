@@ -17,12 +17,14 @@ from user_profile import (
     get_interest_terms,
     personalise,
     sync_history,
+    read_click_log,
 )
+from contextual_bandit import get_model as get_bandit_model, record_impressions_and_click
 
 app = Flask(__name__)
 es = Elasticsearch(
-    "https://my-elasticsearch-project-a21c67.es.us-central1.gcp.elastic.cloud:443",
-    api_key="b3M5VmJKMEJtYkNiV0x5WExmcno6VkRXMVZmcUhuS2oxd1JZSkI0eS1OZw=="
+    "https://my-elasticsearch-project-b7af22.es.us-central1.gcp.elastic.cloud:443",
+    api_key="RDdDRmdwMEI0dlNRLXQyRWhtRVY6UmpFeDNmRGV0dXB4Wk4yb0Fwc25TZw=="
 )
 
 
@@ -84,6 +86,7 @@ def _get_bm25_params() -> dict:
 def search():
     query_text = request.args.get("q", "").strip()
     personalised = request.args.get("personalised", "1") == "1"
+    use_bandit = request.args.get("bandit", "0") == "1"
     results = []
     total_hits = 0
     search_time_ms = 0
@@ -110,6 +113,12 @@ def search():
                                     }
                                 }
                             },
+                            {
+                                "semantic": {
+                                    "field": "content_semantic",
+                                    "query": query_text,
+                                }
+                            },
                         ]
                     }
                 },
@@ -121,9 +130,10 @@ def search():
             total_hits = response["hits"]["total"]["value"]
             search_time_ms = response.get("took", 0)
 
-            # ── personalise results ──────────────────────────────
+            # ── personalise results ───────────────────────────────
             if personalised and results:
-                results = personalise(es, query_text, results)
+                results = personalise(es, query_text, results,
+                                      use_bandit=use_bandit)
 
         except Exception as exc:
             error = str(exc)
@@ -133,6 +143,9 @@ def search():
     # Get user profile stats for the sidebar
     history_stats = get_history_stats(es)
     interest_terms = get_interest_terms(es, max_terms=15)
+
+    # Get bandit model stats
+    bandit_model = get_bandit_model()
 
     return render_template(
         "search.html",
@@ -144,9 +157,11 @@ def search():
         index_name=INDEX_NAME,
         bm25=bm25,
         personalised=personalised,
+        use_bandit=use_bandit,
         alpha=ALPHA,
         history_stats=history_stats,
         interest_terms=interest_terms,
+        bandit_arms=bandit_model.num_arms,
     )
 
 
@@ -176,6 +191,58 @@ def track_click(doc_id):
         pass  # Non-critical — don't block the user
 
     return redirect(url_for("document", doc_id=doc_id, q=query_text))
+
+
+@app.route("/api/bandit-feedback", methods=["POST"])
+def api_bandit_feedback():
+    """
+    Record bandit feedback when a user clicks a result.
+    Expects JSON: {query, clicked_doc_id, shown_doc_ids, shown_scores}
+    """
+    try:
+        data = request.get_json(force=True)
+        query = data.get("query", "")
+        clicked_doc_id = data.get("clicked_doc_id", "")
+        shown_doc_ids = data.get("shown_doc_ids", [])
+
+        # Build minimal result dicts for the bandit
+        shown_results = []
+        for i, did in enumerate(shown_doc_ids):
+            shown_results.append({
+                "_id": did,
+                "_score": data.get("shown_scores", [1.0] * len(shown_doc_ids))[i],
+            })
+
+        # Get history scores for context
+        from user_profile import HISTORY_INDEX
+        history_scores = {}
+        try:
+            if es.indices.exists(index=HISTORY_INDEX):
+                history_body = {
+                    "query": {
+                        "bool": {
+                            "should": [
+                                {"match": {"title": {"query": query, "boost": 2.0}}},
+                                {"match": {"content": {"query": query}}},
+                            ]
+                        }
+                    },
+                    "size": 50,
+                }
+                history_resp = es.search(index=HISTORY_INDEX, body=history_body)
+                for rank, h in enumerate(history_resp["hits"]["hits"], 1):
+                    history_scores[h["_id"]] = (h["_score"], rank)
+        except Exception:
+            pass
+
+        click_entries = read_click_log()
+        record_impressions_and_click(
+            query, shown_results, clicked_doc_id,
+            history_scores, click_entries,
+        )
+        return jsonify({"status": "ok", "arms": get_bandit_model().num_arms})
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
 
 
 @app.route("/doc/<doc_id>", methods=["GET"])
@@ -223,6 +290,12 @@ def explain(doc_id):
                                     "content": {
                                         "query": query_text,
                                     }
+                                }
+                            },
+                            {
+                                "semantic": {
+                                    "field": "content_semantic",
+                                    "query": query_text,
                                 }
                             },
                         ]

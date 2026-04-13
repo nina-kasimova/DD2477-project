@@ -15,8 +15,8 @@ import pandas as pd
 from elasticsearch import Elasticsearch, helpers
 
 es = Elasticsearch(
-    "https://my-elasticsearch-project-a21c67.es.us-central1.gcp.elastic.cloud:443",
-    api_key="b3M5VmJKMEJtYkNiV0x5WExmcno6VkRXMVZmcUhuS2oxd1JZSkI0eS1OZw=="
+    "https://my-elasticsearch-project-b7af22.es.us-central1.gcp.elastic.cloud:443",
+    api_key="RDdDRmdwMEI0dlNRLXQyRWhtRVY6UmpFeDNmRGV0dXB4Wk4yb0Fwc25TZw=="
 )
 
 INDEX_NAME = "wiki_index"
@@ -49,6 +49,9 @@ INDEX_SETTINGS = {
                 "type": "text",
                 "similarity": "custom_bm25",
             },
+            "content_semantic": {
+                "type": "semantic_text",
+            },
             "category": {
                 "type": "keyword",
             },
@@ -80,6 +83,7 @@ def doc_generator(df, index_name):
             "_source": {
                 "title": title,
                 "content": content,
+                "content_semantic": content,
                 "category": "Wikipedia Article",
             },
         }
