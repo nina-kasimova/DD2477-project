@@ -38,6 +38,18 @@
             color: #b00020;
             margin-bottom: 16px;
         }
+        .toolbar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .meta-bar {
+            margin-bottom: 16px;
+            color: #555;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -52,8 +64,30 @@
             placeholder="Search for something..."
             autofocus
         >
+        <label>
+            Mode:
+            <select name="mode">
+                <option value="boosted" {% if mode == "boosted" %}selected{% endif %}>Boosted title</option>
+                <option value="simple" {% if mode == "simple" %}selected{% endif %}>Simple match</option>
+            </select>
+        </label>
         <button type="submit">Search</button>
     </form>
+
+    {% if query %}
+        <div class="meta-bar">
+            Query mode:
+            <strong>
+                {% if mode == "simple" %}Simple multi_match{% else %}BM25 with title boost{% endif %}
+            </strong>
+            |
+            Similarity: <strong>BM25</strong>
+            |
+            k1={{ bm25.k1 }}, b={{ bm25.b }}
+            |
+            {{ total_hits }} results in {{ search_time_ms }} ms
+        </div>
+    {% endif %}
 
     {% if error %}
         <div class="error">{{ error }}</div>
@@ -66,7 +100,7 @@
     {% for hit in results %}
         <div class="result">
             <h2>
-                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}">
+                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index, mode=mode) }}">
                     {{ hit._source.title }}
                 </a>
             </h2>
