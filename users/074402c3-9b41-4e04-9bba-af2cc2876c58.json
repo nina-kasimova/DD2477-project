@@ -1,0 +1,29 @@
+{
+  "user_id": "074402c3-9b41-4e04-9bba-af2cc2876c58",
+  "created_at": "2026-04-08T14:49:04.496060",
+  "search_history": [
+    {
+      "timestamp": "2026-04-08T14:49:21.795720",
+      "doc_id": "zI8rbJ0ByBJvlGjpoNgn",
+      "query": "summer",
+      "rank": 1,
+      "time_spent": 1
+    }
+  ],
+  "preferences": {},
+  "recent_clicks": [
+    {
+      "timestamp": "2026-04-08T14:49:21.795720",
+      "doc_id": "zI8rbJ0ByBJvlGjpoNgn",
+      "query": "summer",
+      "rank": 1,
+      "time_spent": 1
+    }
+  ],
+  "recent_queries": [
+    {
+      "query": "summer",
+      "timestamp": "2026-04-08T14:49:21.795741"
+    }
+  ]
+}

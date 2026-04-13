@@ -4,6 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Elastic Search UI</title>
+    <p>
+        {% if session.get('user_id') %}
+            Logged in as: <strong>{{ session.get('user_id') }}</strong>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+        {% endif %}
+    </p>
     <style>
         body {
             font-family: sans-serif;
@@ -44,6 +52,23 @@
     <h1>Elastic Search UI</h1>
     <p>Searching index: <strong>{{ index_name }}</strong></p>
 
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Create New User button -->
+    <form action="{{ url_for('create_user') }}" method="get" style="margin-bottom:16px;">
+        <button type="submit">Create New User</button>
+    </form>
+
+    <!-- Search form -->
     <form method="get">
         <input
             type="text"

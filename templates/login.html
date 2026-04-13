@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for msg in messages %}
+                    <li>{{ msg }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="post">
+        <input type="text" name="user_id" placeholder="Enter your user ID" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <p>Or <a href="{{ url_for('create_user') }}">create a new user</a></p>
+</body>
+</html>
