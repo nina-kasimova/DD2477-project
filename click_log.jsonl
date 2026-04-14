@@ -5,3 +5,7 @@
 {"timestamp": "2026-03-31T15:34:39.389971+00:00", "doc_id": "hZdxRJ0BHiH0I94j4cEg", "query": "april", "rank": 3}
 {"timestamp": "2026-03-31T15:40:48.581853+00:00", "doc_id": "P5eMRJ0BHiH0I94jrNDv", "query": "science", "rank": 2}
 {"timestamp": "2026-03-31T15:40:52.402909+00:00", "doc_id": "bpeMRJ0BHiH0I94jrNDv", "query": "science", "rank": 3}
+{"timestamp": "2026-04-14T10:46:36.881238+00:00", "user_id": "bob", "doc_id": "jPORi50BbDEqRAptSm-y", "query": "april", "rank": 2, "mode": "simple"}
+{"timestamp": "2026-04-14T11:01:19.792790+00:00", "user_id": "nina", "doc_id": "ifORi50BbDEqRAptSm-y", "query": "april", "rank": 8, "mode": "boosted"}
+{"timestamp": "2026-04-14T11:02:22.966909+00:00", "user_id": "nina", "doc_id": "P_ORi50BbDEqRAptS3KR", "query": "science", "rank": 10, "mode": "boosted"}
+{"timestamp": "2026-04-14T11:02:37.522855+00:00", "user_id": "nina", "doc_id": "P_ORi50BbDEqRAptS3KR", "query": "science", "rank": 10, "mode": "boosted"}

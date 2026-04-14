@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Profile</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            border-top: 1px solid #ddd;
+            padding: 12px 0;
+        }
+        .meta {
+            color: #555;
+            font-size: 14px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .user-actions a {
+            color: #0057b8;
+            text-decoration: none;
+            margin-right: 12px;
+        }
+        .switcher {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-top: 20px;
+        }
+        .switcher form {
+            display: inline;
+            margin-right: 8px;
+        }
+        .profile-box {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin: 16px 0 24px;
+        }
+        .profile-box form {
+            margin-top: 8px;
+        }
+        .profile-box input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .danger {
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div>
+            <p><a href="{{ url_for('search') }}">Back to search</a></p>
+            <h1>{{ user.user_id }}</h1>
+        </div>
+        <div class="user-actions">
+            <a href="{{ url_for('profile') }}">View profile</a>
+            <a href="{{ url_for('search') }}#change-user">Change user</a>
+        </div>
+    </div>
+    <div class="profile-box">
+        <strong>Bio</strong>
+        <p>{% if user.bio %}{{ user.bio }}{% else %}No bio saved.{% endif %}</p>
+        <form method="post" action="{{ url_for('update_profile') }}">
+            <input
+                type="text"
+                name="bio"
+                value="{{ user.bio }}"
+                placeholder="Short bio or interests"
+            >
+            <button type="submit">Save bio</button>
+        </form>
+        <form class="danger" method="post" action="{{ url_for('clear_clicks') }}">
+            <button type="submit">Clear click history</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>Recent Searches</h2>
+        {% if searches %}
+            {% for row in searches %}
+                <div class="card">
+                    <div><strong>{{ row.query }}</strong></div>
+                    <div class="meta">{{ row.timestamp }} | mode={{ row.mode }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No searches yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Recent Clicks</h2>
+        {% if clicks %}
+            {% for row in clicks %}
+                <div class="card">
+                    <div><strong>{{ row.query }}</strong></div>
+                    <div class="meta">doc_id={{ row.doc_id }} | rank={{ row.rank }} | {{ row.timestamp }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No clicks yet.</p>
+        {% endif %}
+    </div>
+
+    {% if all_users %}
+        <div class="switcher">
+            <strong>Switch user:</strong>
+            {% for existing_user in all_users %}
+                {% if existing_user.user_id != user.user_id %}
+                    <form method="post" action="{{ url_for('set_user') }}">
+                        <input type="hidden" name="user_id" value="{{ existing_user.user_id }}">
+                        <input type="hidden" name="bio" value="{{ existing_user.bio }}">
+                        <button type="submit">{{ existing_user.user_id }}</button>
+                    </form>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>

@@ -12,6 +12,34 @@
             padding: 0 16px;
             line-height: 1.5;
         }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .page-header h1 {
+            margin: 0;
+        }
+        .user-panel {
+            min-width: 260px;
+            border: 1px solid #ddd;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .user-panel p {
+            margin: 0 0 8px;
+        }
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .user-actions a {
+            color: #0057b8;
+            text-decoration: none;
+        }
         form {
             display: flex;
             gap: 8px;
@@ -50,11 +78,109 @@
             color: #555;
             font-size: 14px;
         }
+        .profile-terms {
+            margin-bottom: 16px;
+            color: #555;
+            font-size: 14px;
+        }
+        .user-box {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .user-box form {
+            display: block;
+            margin-bottom: 0;
+        }
+        .user-box input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 8px;
+        }
+        .small {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .existing-users {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .existing-users form {
+            margin: 0;
+            display: inline;
+        }
+        .existing-users button {
+            padding: 6px 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <h1>Elastic Search UI</h1>
-    <p>Searching index: <strong>{{ index_name }}</strong></p>
+    <div class="page-header">
+        <div>
+            <h1>Elastic Search UI</h1>
+            <p>Searching index: <strong>{{ index_name }}</strong></p>
+        </div>
+
+        <div class="user-panel">
+            {% if user %}
+                <p>Current user: <strong>{{ user.user_id }}</strong></p>
+                {% if user.bio %}
+                    <p>{{ user.bio }}</p>
+                {% endif %}
+                <div class="user-actions">
+                    <a href="{{ url_for('profile') }}">View profile</a>
+                    <a href="#change-user">Change user</a>
+                </div>
+            {% else %}
+                <p>No active user</p>
+                <div class="user-actions">
+                    <a href="#change-user">Choose user</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <details class="user-box" id="change-user" {% if not user %}open{% endif %}>
+        <summary>{% if user %}Change or add user{% else %}Choose or add user{% endif %}</summary>
+
+        {% if all_users %}
+            <div class="small">Existing users:</div>
+            <div class="existing-users">
+                {% for existing_user in all_users %}
+                    <form method="post" action="{{ url_for('set_user') }}">
+                        <input type="hidden" name="q" value="{{ query }}">
+                        <input type="hidden" name="mode" value="{{ mode }}">
+                        <input type="hidden" name="user_id" value="{{ existing_user.user_id }}">
+                        <input type="hidden" name="bio" value="{{ existing_user.bio }}">
+                        <button type="submit">{{ existing_user.user_id }}</button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="small">Enter a name to log in as an existing user or create a new one.</div>
+        <form method="post" action="{{ url_for('set_user') }}">
+            <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <input
+                type="text"
+                name="user_id"
+                value="{{ user.user_id if user else '' }}"
+                placeholder="Enter your name"
+            >
+            <input
+                type="text"
+                name="bio"
+                value="{{ user.bio if user else '' }}"
+                placeholder="Short bio or interests"
+            >
+            <button type="submit">{% if user %}Save user{% else %}Continue{% endif %}</button>
+        </form>
+    </details>
 
     <form method="get">
         <input
@@ -86,6 +212,13 @@
             k1={{ bm25.k1 }}, b={{ bm25.b }}
             |
             {{ total_hits }} results in {{ search_time_ms }} ms
+        </div>
+    {% endif %}
+
+    {% if user and profile_terms %}
+        <div class="profile-terms">
+            Personalization terms for <strong>{{ user.user_id }}</strong>:
+            {{ profile_terms|join(", ") }}
         </div>
     {% endif %}
 
