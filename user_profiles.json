@@ -3,6 +3,12 @@
     "bio": "tennis, science, koalas, hemispheres, china"
   },
   "bob": {
-    "bio": "festivals"
+    "bio": "plants, bacteria, soil"
+  },
+  "alice": {
+    "bio": "mathematics, physics"
+  },
+  "new_user": {
+    "bio": ""
   }
 }

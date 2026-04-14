@@ -83,6 +83,14 @@
             color: #555;
             font-size: 14px;
         }
+        .profile-terms code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
         .user-box {
             border: 1px solid #ddd;
             padding: 12px;
@@ -144,6 +152,8 @@
         </div>
     </div>
 
+    <p><a href="{{ url_for('browse') }}">Browse random articles</a></p>
+
     <details class="user-box" id="change-user" {% if not user %}open{% endif %}>
         <summary>{% if user %}Change or add user{% else %}Choose or add user{% endif %}</summary>
 
@@ -154,6 +164,7 @@
                     <form method="post" action="{{ url_for('set_user') }}">
                         <input type="hidden" name="q" value="{{ query }}">
                         <input type="hidden" name="mode" value="{{ mode }}">
+                        <input type="hidden" name="personalize" value="{{ '1' if personalize else '0' }}">
                         <input type="hidden" name="user_id" value="{{ existing_user.user_id }}">
                         <input type="hidden" name="bio" value="{{ existing_user.bio }}">
                         <button type="submit">{{ existing_user.user_id }}</button>
@@ -166,6 +177,7 @@
         <form method="post" action="{{ url_for('set_user') }}">
             <input type="hidden" name="q" value="{{ query }}">
             <input type="hidden" name="mode" value="{{ mode }}">
+            <input type="hidden" name="personalize" value="{{ '1' if personalize else '0' }}">
             <input
                 type="text"
                 name="user_id"
@@ -197,6 +209,13 @@
                 <option value="simple" {% if mode == "simple" %}selected{% endif %}>Simple match</option>
             </select>
         </label>
+        <label>
+            Personalize:
+            <select name="personalize">
+                <option value="1" {% if personalize %}selected{% endif %}>On</option>
+                <option value="0" {% if not personalize %}selected{% endif %}>Off</option>
+            </select>
+        </label>
         <button type="submit">Search</button>
     </form>
 
@@ -211,14 +230,18 @@
             |
             k1={{ bm25.k1 }}, b={{ bm25.b }}
             |
-            {{ total_hits }} results in {{ search_time_ms }} ms
+            {{ total_hits }} results
+            |
+            Personalize: <strong>{% if personalize %}On{% else %}Off{% endif %}</strong>
         </div>
     {% endif %}
 
-    {% if user and profile_terms %}
+    {% if user and personalize and profile %}
         <div class="profile-terms">
-            Personalization terms for <strong>{{ user.user_id }}</strong>:
-            {{ profile_terms|join(", ") }}
+            Personalization profile for <strong>{{ user.user_id }}</strong>:
+            {% for row in profile %}
+                <code>{{ row.term }} ({{ "%.1f"|format(row.weight) }})</code>
+            {% endfor %}
         </div>
     {% endif %}
 
@@ -233,7 +256,7 @@
     {% for hit in results %}
         <div class="result">
             <h2>
-                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index, mode=mode) }}">
+                <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index, mode=mode, personalize='1' if personalize else '0') }}">
                     {{ hit._source.title }}
                 </a>
             </h2>

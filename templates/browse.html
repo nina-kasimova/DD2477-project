@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Browse Articles</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .meta {
+            color: #555;
+            font-size: 14px;
+        }
+        .list {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .list li {
+            margin-bottom: 14px;
+        }
+        .error {
+            color: #b00020;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div>
+            <p><a href="{{ url_for('search') }}">Back to search</a></p>
+            <h1>Browse Articles</h1>
+            <p class="meta">50 random documents from `wiki_index` so you can see what is in the corpus.</p>
+        </div>
+        {% if user %}
+            <div class="meta">Current user: <strong>{{ user.user_id }}</strong></div>
+        {% endif %}
+    </div>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <ol class="list">
+        {% for hit in articles %}
+            <li>
+                <div>
+                    <a href="{{ url_for('document', doc_id=hit._id) }}">{{ hit._source.title }}</a>
+                </div>
+                <p>{{ hit._source.content[:300] }}{% if hit._source.content|length > 300 %}...{% endif %}</p>
+            </li>
+        {% endfor %}
+    </ol>
+</body>
+</html>

@@ -40,3 +40,52 @@
 {"timestamp": "2026-04-14T11:02:40.544642+00:00", "user_id": "nina", "query": "science", "mode": "boosted"}
 {"timestamp": "2026-04-14T11:02:41.495132+00:00", "user_id": "nina", "query": "science", "mode": "boosted"}
 {"timestamp": "2026-04-14T11:02:44.469669+00:00", "user_id": "nina", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:23:44.622832+00:00", "user_id": "nina", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:24:42.764893+00:00", "user_id": "nina", "query": "buy a phine", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:24:45.913040+00:00", "user_id": "nina", "query": "buy a phone", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:25:03.252891+00:00", "user_id": "nina", "query": "napoleon bonapart", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:25:09.635374+00:00", "user_id": "nina", "query": "how to study plants", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:25:19.651742+00:00", "user_id": "nina", "query": "vectors", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:25:27.013544+00:00", "user_id": "nina", "query": "balls", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:26:02.878057+00:00", "user_id": "alice", "query": "balls", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:26:09.978583+00:00", "user_id": "alice", "query": "table", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:27:31.474212+00:00", "user_id": "alice", "query": "table", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:29:28.591873+00:00", "user_id": "alice", "query": "ottawa", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:29:37.985621+00:00", "user_id": "bob", "query": "ottawa", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:29:40.061407+00:00", "user_id": "bob", "query": "ottawa", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:29:51.131215+00:00", "user_id": "bob", "query": "ottawa", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:29:54.642121+00:00", "user_id": "bob", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:30:30.836933+00:00", "user_id": "bob", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:30:42.769927+00:00", "user_id": "nina", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:30:45.990790+00:00", "user_id": "nina", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:30:59.257826+00:00", "user_id": "new_user", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:31:01.453366+00:00", "user_id": "new_user", "query": "hungary", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:31:13.185111+00:00", "user_id": "new_user", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:31:35.302988+00:00", "user_id": "alice", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:31:47.660746+00:00", "user_id": "alice", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:32:50.129024+00:00", "user_id": "alice", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:33:08.451551+00:00", "user_id": "bob", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:33:53.520572+00:00", "user_id": "bob", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:33:56.987880+00:00", "user_id": "bob", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:34:01.537772+00:00", "user_id": "bob", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:49:47.789728+00:00", "user_id": "bob", "query": "germany", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:50:01.990564+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:50:10.979255+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:50:17.794212+00:00", "user_id": "alice", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:06.541695+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:15.551782+00:00", "user_id": "alice", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:18.488976+00:00", "user_id": "alice", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:26.239159+00:00", "user_id": "alice", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:35.950709+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:38.724964+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:53.460944+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:51:59.475297+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:06.296778+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:11.108450+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:25.868181+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:30.281503+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:34.314823+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:38.008650+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:52:55.058128+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:53:12.408504+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
+{"timestamp": "2026-04-14T11:53:17.610371+00:00", "user_id": "bob", "query": "science", "mode": "boosted"}
