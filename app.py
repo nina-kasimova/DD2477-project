@@ -110,6 +110,11 @@ def search():
     profile_id = request.args.get("profile_id", "default").strip()
     user_interest = request.args.get("user_interest", "").strip()
     
+    try:
+        result_size = int(request.args.get("size", 20))
+    except ValueError:
+        result_size = 20
+    
     # Persist the profile simply by ensuring its click log file exists
     if profile_id:
         log_path = get_click_log(profile_id)
@@ -145,7 +150,7 @@ def search():
                         ]
                     }
                 },
-                "size": 10,
+                "size": result_size,
             }
 
             all_interests = get_manual_interests(profile_id)
@@ -196,6 +201,7 @@ def search():
         profile_id=profile_id,
         user_interest=user_interest,
         available_profiles=get_all_profiles(),
+        result_size=result_size,
     )
 
 
