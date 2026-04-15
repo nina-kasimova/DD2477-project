@@ -24,9 +24,13 @@ from elasticsearch import Elasticsearch, NotFoundError, helpers
 
 from contextual_bandit import bandit_rerank
 
-CLICK_LOG = Path("click_log.jsonl")
+def get_click_log(profile_id: str = "default") -> Path:
+    return Path(f"click_log_{profile_id}.jsonl" if profile_id != "default" else "click_log.jsonl")
+
+def get_history_index(profile_id: str = "default") -> str:
+    return f"user_history_{profile_id}" if profile_id != "default" else "user_history"
+
 MAIN_INDEX = "wiki_index"
-HISTORY_INDEX = "user_history"
 
 # BM25 parameters — keep in sync with the main index
 BM25_K1 = 1.2
@@ -79,18 +83,20 @@ HISTORY_SETTINGS = {
 }
 
 
-def _ensure_history_index(es: Elasticsearch) -> None:
+def _ensure_history_index(es: Elasticsearch, profile_id: str = "default") -> None:
     """Create the user_history index if it doesn't exist."""
-    if not es.indices.exists(index=HISTORY_INDEX):
-        es.indices.create(index=HISTORY_INDEX, body=HISTORY_SETTINGS)
+    idx = get_history_index(profile_id)
+    if not es.indices.exists(index=idx):
+        es.indices.create(index=idx, body=HISTORY_SETTINGS)
 
 
-def read_click_log() -> list[dict]:
+def read_click_log(profile_id: str = "default") -> list[dict]:
     """Return all click-log entries as a list of dicts."""
-    if not CLICK_LOG.exists():
+    log_path = get_click_log(profile_id)
+    if not log_path.exists():
         return []
     entries = []
-    with CLICK_LOG.open("r", encoding="utf-8") as f:
+    with log_path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -98,7 +104,7 @@ def read_click_log() -> list[dict]:
     return entries
 
 
-def sync_history(es: Elasticsearch) -> dict:
+def sync_history(es: Elasticsearch, profile_id: str = "default") -> dict:
     """
     Synchronise the click log → user_history ES index.
 
@@ -109,9 +115,10 @@ def sync_history(es: Elasticsearch) -> dict:
 
     Returns a summary dict  {synced: int, errors: int, total_in_history: int}.
     """
-    _ensure_history_index(es)
+    idx = get_history_index(profile_id)
+    _ensure_history_index(es, profile_id)
 
-    clicks = read_click_log()
+    clicks = read_click_log(profile_id)
     if not clicks:
         return {"synced": 0, "errors": 0, "total_in_history": 0}
 
@@ -128,7 +135,7 @@ def sync_history(es: Elasticsearch) -> dict:
         try:
             # Check if already in history
             try:
-                existing = es.get(index=HISTORY_INDEX, id=doc_id)
+                existing = es.get(index=idx, id=doc_id)
                 current_count = existing["_source"].get("click_count", 0)
                 current_queries = existing["_source"].get("query", "")
             except NotFoundError:
@@ -167,23 +174,23 @@ def sync_history(es: Elasticsearch) -> dict:
                 "rank_at_click": best_rank,
             }
 
-            es.index(index=HISTORY_INDEX, id=doc_id, body=history_doc)
+            es.index(index=idx, id=doc_id, body=history_doc)
             synced += 1
 
         except Exception:
             errors += 1
 
-    es.indices.refresh(index=HISTORY_INDEX)
+    es.indices.refresh(index=idx)
 
     # Total docs in history
-    count_resp = es.count(index=HISTORY_INDEX)
+    count_resp = es.count(index=idx)
     total = count_resp.get("count", 0)
 
     return {"synced": synced, "errors": errors, "total_in_history": total}
 
 
 def personalise(es: Elasticsearch, query: str, main_results: list[dict],
-                alpha: float = ALPHA, use_bandit: bool = False) -> list[dict]:
+                alpha: float = ALPHA, use_bandit: bool = False, profile_id: str = "default") -> list[dict]:
     """
     Re-rank main_results by blending the original BM25 score with a
     personalisation score from the user_history index.
@@ -204,9 +211,11 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
     """
     if not main_results:
         return main_results
+    
+    idx = get_history_index(profile_id)
 
     # Check if history index exists
-    if not es.indices.exists(index=HISTORY_INDEX):
+    if not es.indices.exists(index=idx):
         # No history — return results unchanged with metadata
         for hit in main_results:
             hit["_original_score"] = hit["_score"]
@@ -231,7 +240,7 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
             },
             "size": 50,
         }
-        history_resp = es.search(index=HISTORY_INDEX, body=history_body)
+        history_resp = es.search(index=idx, body=history_body)
         history_hits = history_resp["hits"]["hits"]
     except Exception:
         history_hits = []
@@ -269,7 +278,7 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
 
     # ── contextual bandit re-ranking ─────────────────────────────────
     if use_bandit:
-        click_entries = read_click_log()
+        click_entries = read_click_log(profile_id)
         main_results = bandit_rerank(
             es, query, main_results, history_scores, click_entries
         )
@@ -279,14 +288,15 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
     return main_results
 
 
-def get_interest_terms(es: Elasticsearch, max_terms: int = 20) -> list[dict]:
+def get_interest_terms(es: Elasticsearch, max_terms: int = 20, profile_id: str = "default") -> list[dict]:
     """
     Extract the most significant terms from the user's history index using
     ES's significant_terms aggregation, giving a concise interest profile.
 
     Returns a list of dicts: [{term, doc_count, score}, ...]
     """
-    if not es.indices.exists(index=HISTORY_INDEX):
+    idx = get_history_index(profile_id)
+    if not es.indices.exists(index=idx):
         return []
 
     try:
@@ -308,7 +318,7 @@ def get_interest_terms(es: Elasticsearch, max_terms: int = 20) -> list[dict]:
                 },
             },
         }
-        resp = es.search(index=HISTORY_INDEX, body=body)
+        resp = es.search(index=idx, body=body)
         aggs = resp.get("aggregations", {})
 
         # Merge both aggregations, dedup by term
@@ -332,19 +342,20 @@ def get_interest_terms(es: Elasticsearch, max_terms: int = 20) -> list[dict]:
         return []
 
 
-def get_history_stats(es: Elasticsearch) -> dict:
+def get_history_stats(es: Elasticsearch, profile_id: str = "default") -> dict:
     """
     Return summary statistics about the user's history.
     """
-    if not es.indices.exists(index=HISTORY_INDEX):
+    idx = get_history_index(profile_id)
+    if not es.indices.exists(index=idx):
         return {"total_docs": 0, "total_clicks": 0, "unique_queries": 0}
 
     try:
-        count = es.count(index=HISTORY_INDEX).get("count", 0)
+        count = es.count(index=idx).get("count", 0)
 
         # Get all docs to compute click totals and unique queries
         body = {"size": 100, "_source": ["click_count", "query"]}
-        resp = es.search(index=HISTORY_INDEX, body=body)
+        resp = es.search(index=idx, body=body)
         hits = resp["hits"]["hits"]
 
         total_clicks = sum(h["_source"].get("click_count", 0) for h in hits)

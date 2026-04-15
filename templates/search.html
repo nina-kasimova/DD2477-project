@@ -8,27 +8,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0f1117;
-            --bg-secondary: #1a1d27;
-            --bg-card: #1e2130;
-            --bg-card-hover: #252840;
-            --border: #2a2d3e;
-            --text-primary: #e8eaed;
-            --text-secondary: #9aa0b0;
-            --text-muted: #6b7084;
-            --accent: #7c8aff;
-            --accent-dim: rgba(124, 138, 255, 0.12);
-            --accent-glow: rgba(124, 138, 255, 0.25);
-            --green: #4ade80;
-            --green-dim: rgba(74, 222, 128, 0.12);
-            --orange: #fb923c;
-            --orange-dim: rgba(251, 146, 60, 0.12);
-            --purple: #a78bfa;
-            --purple-dim: rgba(167, 139, 250, 0.12);
-            --cyan: #22d3ee;
-            --cyan-dim: rgba(34, 211, 238, 0.12);
-            --radius: 12px;
-            --radius-sm: 8px;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9f9fb;
+            --bg-card: #ffffff;
+            --bg-card-hover: #fafafa;
+            --border: #eaeaea;
+            --text-primary: #111111;
+            --text-secondary: #444444;
+            --text-muted: #888888;
+            --accent: #000000;
+            --accent-dim: #f0f0f0;
+            --accent-glow: rgba(0, 0, 0, 0.05);
+            --green: #10b981;
+            --green-dim: #ecfdf5;
+            --orange: #f59e0b;
+            --orange-dim: #fffbeb;
+            --purple: #8b5cf6;
+            --purple-dim: #f5f3ff;
+            --cyan: #06b6d4;
+            --cyan-dim: #ecfeff;
+            --radius: 8px;
+            --radius-sm: 4px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -75,10 +75,7 @@
             font-size: 28px;
             font-weight: 700;
             letter-spacing: -0.5px;
-            background: linear-gradient(135deg, var(--accent), #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
@@ -146,6 +143,30 @@
             align-items: center;
             gap: 14px;
             flex-wrap: wrap;
+        }
+        
+        .profile-select, .interest-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .create-user-btn {
+            padding: 8px 12px;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .create-user-btn:hover {
+            opacity: 0.85;
         }
 
         .toggle-wrapper {
@@ -575,6 +596,16 @@
                     Contextual Bandit
                 </span>
             </div>
+            <select class="profile-select" id="profile-select" name="profile_id" form="search-form" onchange="document.getElementById('search-form').submit()">
+                {% for p in available_profiles %}
+                <option value="{{ p }}" {% if profile_id == p %}selected{% endif %}>User: {{ p.title() }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="create-user-btn" onclick="createNewProfile()">+ New User</button>
+            <a href="{{ url_for('users_list') }}" class="create-user-btn" style="text-decoration: none; background: transparent; color: var(--text-secondary); border: 1px solid var(--border);">👥 Directory</a>
+            
+            <input type="text" class="interest-input" name="user_interest" value="{{ user_interest }}" form="search-form" placeholder="Manual interest override (e.g. math)" onchange="document.getElementById('search-form').submit()">
+
             {% if personalised %}
                 <span class="alpha-badge" title="Blending weight: {{ '%.0f'|format(alpha * 100) }}% user history, {{ '%.0f'|format((1 - alpha) * 100) }}% BM25">
                     α = {{ alpha }}
@@ -621,7 +652,7 @@
             {% for hit in results %}
                 <div class="result {% if hit._boosted %}boosted{% endif %}" id="result-{{ loop.index }}" data-doc-id="{{ hit._id }}" data-score="{{ hit._score }}">
                     <h2>
-                        <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index) }}" onclick="sendBanditFeedback('{{ hit._id }}')">
+                        <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index, profile_id=profile_id) }}" onclick="sendBanditFeedback('{{ hit._id }}')">
                             {{ hit._source.title }}
                         </a>
                     </h2>
@@ -693,7 +724,7 @@
                 <button class="sync-btn" id="sync-btn" onclick="syncHistory()">
                     ⟳ Sync History
                 </button>
-                <a class="profile-link" href="{{ url_for('profile_page') }}" id="view-profile-link">
+                <a class="profile-link" href="{{ url_for('profile_page', profile_id=profile_id) }}" id="view-profile-link">
                     View full profile →
                 </a>
             </div>
@@ -740,6 +771,24 @@
             }
         }
 
+        function createNewProfile() {
+            const newProfile = prompt("Enter new profile name (letters/numbers only):");
+            if (newProfile && newProfile.trim()) {
+                const cleanProfile = newProfile.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (cleanProfile) {
+                    const select = document.getElementById('profile-select');
+                    // Add new option and select it
+                    const option = document.createElement("option");
+                    option.text = "User: " + cleanProfile;
+                    option.value = cleanProfile;
+                    select.add(option);
+                    select.value = cleanProfile;
+                    
+                    document.getElementById('search-form').submit();
+                }
+            }
+        }
+
         function sendBanditFeedback(clickedDocId) {
             // Collect shown result doc IDs and scores from the page
             const results = document.querySelectorAll('.result[data-doc-id]');
@@ -760,16 +809,22 @@
                     clicked_doc_id: clickedDocId,
                     shown_doc_ids: shownDocIds,
                     shown_scores: shownScores,
+                    profile_id: document.getElementById('profile-select').value,
                 }),
             }).catch(() => {});
         }
 
         async function syncHistory() {
             const btn = document.getElementById('sync-btn');
+            const profile_id = document.getElementById('profile-select').value;
             btn.classList.add('syncing');
             btn.textContent = '⟳ Syncing…';
             try {
-                const resp = await fetch('/api/sync-history', { method: 'POST' });
+                const resp = await fetch('/api/sync-history', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({profile_id: profile_id})
+                });
                 const data = await resp.json();
                 btn.textContent = `✓ ${data.total_in_history} docs in history`;
                 setTimeout(() => {

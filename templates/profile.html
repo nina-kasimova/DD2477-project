@@ -189,6 +189,67 @@
             padding: 9px 18px;
         }
 
+        .manual-tags {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .manual-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .remove-btn:hover { color: #ff4d4f; }
+
+        .add-interest-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .add-interest-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            font-size: 13px;
+            color: var(--text-primary);
+            flex-grow: 1;
+            max-width: 300px;
+        }
+
+        .add-interest-btn {
+            padding: 8px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .add-interest-btn:hover { opacity: 0.85; }
+
         /* ── click history table ───────────────────────────── */
         .history-card {
             background: var(--bg-card);
@@ -304,8 +365,8 @@
 <body>
     <div class="container">
         <header>
-            <a class="back-link" href="{{ url_for('search') }}" id="back-to-search">← Back to search</a>
-            <h1>User Profile</h1>
+            <a class="back-link" href="{{ url_for('search', profile_id=profile_id) }}" id="back-to-search">← Back to search</a>
+            <h1>User Profile: {{ profile_id.title() if profile_id else 'Default' }}</h1>
             <p class="page-subtitle">Your search interests built from click history via BM25</p>
         </header>
 
@@ -339,9 +400,34 @@
                 </div>
             {% else %}
                 <div class="empty-state">
-                    No interest terms extracted yet. Click on search results to build your profile.
+                    No algorithmically extracted interest terms yet. Click on search results to build your profile.
                 </div>
             {% endif %}
+
+            <div class="manual-tags">
+                <h3 style="font-size: 14px; margin-bottom: 12px;">Manually Added Interests (Permanent Boost)</h3>
+                
+                <div style="margin-bottom: 12px;">
+                    {% for current_interest in manual_interests %}
+                        <div class="manual-tag">
+                            <span>{{ current_interest }}</span>
+                            <form action="{{ url_for('remove_interest') }}" method="POST" style="display:inline;">
+                                <input type="hidden" name="profile_id" value="{{ profile_id }}">
+                                <input type="hidden" name="interest" value="{{ current_interest }}">
+                                <button type="submit" class="remove-btn" title="Remove">&times;</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <span style="font-size: 13px; color: var(--text-muted);">No manual interests added yet.</span>
+                    {% endfor %}
+                </div>
+
+                <form class="add-interest-form" action="{{ url_for('add_interest') }}" method="POST">
+                    <input type="hidden" name="profile_id" value="{{ profile_id }}">
+                    <input type="text" name="interest" class="add-interest-input" placeholder="Add a permanent interest (e.g. quantum physics)" required>
+                    <button type="submit" class="add-interest-btn">+ Add Interest</button>
+                </form>
+            </div>
         </div>
 
         <!-- ── how it works ───────────────────────────────── -->

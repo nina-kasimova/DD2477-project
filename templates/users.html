@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Users Directory — Personalized Search Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9f9fb;
+            --bg-card: #ffffff;
+            --bg-card-hover: #fafafa;
+            --border: #eaeaea;
+            --text-primary: #111111;
+            --text-secondary: #444444;
+            --text-muted: #888888;
+            --accent: #000000;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            padding: 40px 0 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover { color: var(--accent); }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .user-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .user-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .user-stats {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .user-stats span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: 1px solid var(--accent);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a class="back-link" href="{{ url_for('search') }}">← Back to search</a>
+            <h1>Users Directory</h1>
+            <p class="page-subtitle">View and manage all active user profiles</p>
+        </header>
+
+        <div class="users-grid">
+            {% for user in users %}
+            <div class="user-card">
+                <div class="user-name">{{ user.id.title() }}</div>
+                <div class="user-stats">
+                    <span><strong>{{ user.clicks }}</strong> total clicks recorded</span>
+                    <span><strong>{{ user.docs }}</strong> documents in history index</span>
+                </div>
+                <div class="actions">
+                    <a href="{{ url_for('search', profile_id=user.id) }}" class="btn btn-primary">Search as User</a>
+                    <a href="{{ url_for('profile_page', profile_id=user.id) }}" class="btn btn-secondary">View Profile</a>
+                    <form action="{{ url_for('delete_user') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to completely delete {{ user.id.title() }} and wipe all history? This cannot be undone.');" style="display:inline; flex: 0;">
+                        <input type="hidden" name="profile_id" value="{{ user.id }}">
+                        <button type="submit" class="btn" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca;" title="Permanently Delete User">🗑</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
