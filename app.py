@@ -131,23 +131,15 @@ def search():
             body = {
                 "query": {
                     "bool": {
-                        "should": [
+                        "must": [
                             {
-                                "match": {
-                                    "title": {
-                                        "query": query_text,
-                                        "boost": 2.0,
-                                    }
-                                }
-                            },
-                            {
-                                "match": {
-                                    "content": {
-                                        "query": query_text,
-                                    }
+                                "multi_match": {
+                                    "query": query_text,
+                                    "fields": ["title^2.0", "content"]
                                 }
                             }
-                        ]
+                        ],
+                        "should": []
                     }
                 },
                 "size": result_size,
@@ -158,8 +150,9 @@ def search():
                 all_interests.append(user_interest)
 
             for interest in all_interests:
-                body["query"]["bool"]["should"].append({"match": {"content": {"query": interest, "boost": 1.5}}})
-                body["query"]["bool"]["should"].append({"match": {"title": {"query": interest, "boost": 1.2}}})
+                body["query"]["bool"]["should"].append(
+                    {"multi_match": {"query": interest, "fields": ["title^1.2", "content^1.5"]}}
+                )
 
             response = es.search(index=INDEX_NAME, body=body)
             results = response["hits"]["hits"]

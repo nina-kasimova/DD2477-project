@@ -38,7 +38,7 @@ BM25_B = 0.75
 
 # How much weight the personalisation score gets vs. the original BM25 score
 # final_score = (1 - ALPHA) * original_bm25 + ALPHA * personalisation_bm25
-ALPHA = 0.3
+ALPHA = 0.2
 
 HISTORY_SETTINGS = {
     "settings": {
@@ -229,13 +229,9 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
     try:
         history_body = {
             "query": {
-                "bool": {
-                    "should": [
-                        {"match": {"title": {"query": query, "boost": 2.0}}},
-                        {"match": {"content": {"query": query}}},
-                        {"match": {"query": {"query": query, "boost": 1.5}}},
-                        {"semantic": {"field": "content_semantic", "query": query}},
-                    ]
+                "semantic": {
+                    "field": "content_semantic",
+                    "query": query
                 }
             },
             "size": 50,
