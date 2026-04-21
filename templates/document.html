@@ -74,7 +74,7 @@
 </head>
 <body>
     <div class="container">
-        <a class="back-link" href="{{ url_for('search', q=query) }}" id="back-to-search">
+        <a class="back-link" href="{{ url_for('search', q=query, profile_id=profile_id) }}" id="back-to-search">
             ← Back to search
         </a>
         <h1 id="doc-title">{{ doc.title }}</h1>
@@ -86,4 +86,3 @@
     </div>
 </body>
 </html>
-

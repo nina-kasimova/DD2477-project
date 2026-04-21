@@ -229,7 +229,7 @@ def track_click(doc_id):
     import threading
     threading.Thread(target=background_sync, args=(es, profile_id)).start()
 
-    return redirect(url_for("document", doc_id=doc_id, q=query_text))
+    return redirect(url_for("document", doc_id=doc_id, q=query_text, profile_id=profile_id))
 
 
 @app.route("/api/bandit-feedback", methods=["POST"])
@@ -290,6 +290,7 @@ def api_bandit_feedback():
 def document(doc_id):
     """Show a single document."""
     query_text = request.args.get("q", "").strip()
+    profile_id = request.args.get("profile_id", "default").strip()
 
     try:
         response = es.get(index=INDEX_NAME, id=doc_id)
@@ -301,6 +302,7 @@ def document(doc_id):
         doc=response["_source"],
         doc_id=doc_id,
         query=query_text,
+        profile_id=profile_id,
     )
 
 
