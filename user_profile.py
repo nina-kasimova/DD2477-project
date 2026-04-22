@@ -38,7 +38,7 @@ BM25_B = 0.75
 
 # How much weight the personalisation score gets vs. the original BM25 score
 # final_score = (1 - ALPHA) * original_bm25 + ALPHA * personalisation_bm25
-ALPHA = 0.2
+ALPHA = 0.8
 
 HISTORY_SETTINGS = {
     "settings": {
@@ -189,29 +189,41 @@ def sync_history(es: Elasticsearch, profile_id: str = "default") -> dict:
     return {"synced": synced, "errors": errors, "total_in_history": total}
 
 
+# Weight given to semantic similarity vs. direct history match within
+# the personalisation component.  0 = only direct match, 1 = only semantic.
+SEMANTIC_WEIGHT = 0.6
+
+
 def personalise(es: Elasticsearch, query: str, main_results: list[dict],
                 alpha: float = ALPHA, use_bandit: bool = False, profile_id: str = "default") -> list[dict]:
     """
     Re-rank main_results by blending the original BM25 score with a
-    personalisation score from the user_history index.
+    personalisation score from the user_history index, incorporating both
+    direct document matches AND semantic similarity.
 
     Steps:
-    1. Run the same query on user_history using BM25.
-    2. For each document in main_results, check if it (or a topically related
-       document) appears in the history results.
-    3. Compute: final = (1 - alpha) * orig_score + alpha * personal_score
-    4. Re-sort and return.
+    1. Run the query on user_history (semantic) to find relevant clicked docs.
+    2. For each main result, compute a *direct history match* score (same doc_id).
+    3. Build an "interest profile" from history content and run a semantic
+       search on the main index — this gives every result a *semantic
+       similarity* score to previously clicked content.
+    4. Blend:  final = (1-α)*BM25 + α*((1-β)*direct + β*semantic)
+    5. Re-sort and return.
+
+    This means clicking "Apple Inc." when searching "apple" will also
+    boost "MacOS", "iPhone", etc. on subsequent "apple" searches.
 
     Each result dict gets these extra keys:
-        _original_score   – the raw BM25 score from the main index
-        _personal_score   – the BM25 score from the user_history query
-        _final_score      – the blended score
-        _personal_rank    – rank in the user_history results (None if absent)
-        _boosted          – bool, whether this result got a boost
+        _original_score          – the raw BM25 score from the main index
+        _personal_score          – the direct history-match score
+        _semantic_personal_score – semantic similarity to clicked content
+        _final_score             – the blended score
+        _personal_rank           – rank in the user_history results (None if absent)
+        _boosted                 – bool, whether this result got any boost
     """
     if not main_results:
         return main_results
-    
+
     idx = get_history_index(profile_id)
 
     # Check if history index exists
@@ -220,12 +232,13 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
         for hit in main_results:
             hit["_original_score"] = hit["_score"]
             hit["_personal_score"] = 0.0
+            hit["_semantic_personal_score"] = 0.0
             hit["_final_score"] = hit["_score"]
             hit["_personal_rank"] = None
             hit["_boosted"] = False
         return main_results
 
-    # Query user history with BM25
+    # ── 1. Query user history (semantic) ─────────────────────────────
     try:
         history_body = {
             "query": {
@@ -235,6 +248,7 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
                 }
             },
             "size": 50,
+            "_source": ["title", "content"],
         }
         history_resp = es.search(index=idx, body=history_body)
         history_hits = history_resp["hits"]["hits"]
@@ -246,29 +260,88 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
     for rank, h in enumerate(history_hits, 1):
         history_scores[h["_id"]] = (h["_score"], rank)
 
-    # Normalise scores to [0, 1] range for fair blending
+    # ── 2. Build semantic interest profile from history content ──────
+    semantic_personal_scores: dict[str, tuple[float, int]] = {}
+
+    if history_hits:
+        # Combine titles + leading content from the top history matches
+        # to form an "interest profile" that captures what the user cares about
+        interest_parts = []
+        for h in history_hits[:5]:
+            src = h.get("_source", {})
+            title = src.get("title", "")
+            content = src.get("content", "")[:300]
+            if title:
+                interest_parts.append(f"{title}. {content}")
+
+        interest_text = " ".join(interest_parts).strip()
+
+        if interest_text:
+            try:
+                # Semantic search on the MAIN index using interest profile,
+                # filtered to only the documents in our current result set.
+                result_ids = [h["_id"] for h in main_results]
+                semantic_body = {
+                    "query": {
+                        "bool": {
+                            "must": {
+                                "semantic": {
+                                    "field": "content_semantic",
+                                    "query": interest_text,
+                                }
+                            },
+                            "filter": {
+                                "ids": {"values": result_ids}
+                            }
+                        }
+                    },
+                    "size": len(main_results),
+                }
+                sem_resp = es.search(index=MAIN_INDEX, body=semantic_body)
+                for sem_rank, sh in enumerate(sem_resp["hits"]["hits"], 1):
+                    semantic_personal_scores[sh["_id"]] = (sh["_score"], sem_rank)
+            except Exception:
+                pass
+
+    # ── 3. Normalise & blend all scores ──────────────────────────────
     max_orig = max((h["_score"] for h in main_results), default=1.0) or 1.0
     max_hist = max((s for s, _ in history_scores.values()), default=1.0) or 1.0
+    max_sem = max((s for s, _ in semantic_personal_scores.values()), default=1.0) or 1.0
 
     for hit in main_results:
         orig = hit["_score"]
         norm_orig = orig / max_orig
-
         doc_id = hit["_id"]
+
+        # Direct history match (same doc_id clicked before)
         if doc_id in history_scores:
             hist_score, hist_rank = history_scores[doc_id]
             norm_hist = hist_score / max_hist
             hit["_personal_score"] = hist_score
             hit["_personal_rank"] = hist_rank
-            hit["_boosted"] = True
         else:
             norm_hist = 0.0
             hit["_personal_score"] = 0.0
             hit["_personal_rank"] = None
-            hit["_boosted"] = False
 
+        # Semantic similarity to clicked content
+        if doc_id in semantic_personal_scores:
+            sem_score, _ = semantic_personal_scores[doc_id]
+            norm_sem = sem_score / max_sem
+            hit["_semantic_personal_score"] = sem_score
+        else:
+            norm_sem = 0.0
+            hit["_semantic_personal_score"] = 0.0
+
+        hit["_boosted"] = norm_hist > 0 or norm_sem > 0
         hit["_original_score"] = orig
-        blended = (1 - alpha) * norm_orig + alpha * norm_hist
+
+        # Combined personalisation:
+        #   personal = (1 - SEMANTIC_WEIGHT) * direct_match + SEMANTIC_WEIGHT * semantic_sim
+        #   final    = (1 - alpha) * bm25 + alpha * personal
+        personal_combined = ((1 - SEMANTIC_WEIGHT) * norm_hist
+                             + SEMANTIC_WEIGHT * norm_sem)
+        blended = (1 - alpha) * norm_orig + alpha * personal_combined
         # Scale back to original-score magnitude so values stay intuitive
         hit["_final_score"] = blended * max_orig
 

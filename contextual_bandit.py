@@ -24,6 +24,7 @@ JSON file so the model survives server restarts.
 """
 
 import json
+from typing import Optional
 import math
 import time
 from pathlib import Path
@@ -33,7 +34,7 @@ import numpy as np
 MODEL_PATH = Path("bandit_model.json")
 
 # ── hyper-parameters ─────────────────────────────────────────────────────────
-ALPHA_UCB = 1.5       # exploration factor (higher → more exploration)
+ALPHA_UCB = 3.0       # exploration factor (higher → more exploration)
 D = 6                # feature dimension (see _build_features)
 LAMBDA_REG = 1.0       # ridge regression regularisation
 
@@ -171,7 +172,7 @@ def _build_features(
     ], dtype=np.float64)
 
 
-def compute_recency_decay(last_clicked_iso: str | None, half_life_days: float = 7.0) -> float:
+def compute_recency_decay(last_clicked_iso: Optional[str], half_life_days: float = 7.0) -> float:
     """Exponential decay based on how recently the doc was clicked."""
     if not last_clicked_iso:
         return 0.0
@@ -290,7 +291,7 @@ def bandit_rerank(
 def record_impressions_and_click(
     query: str,
     shown_results: list[dict],
-    clicked_doc_id: str | None,
+    clicked_doc_id: Optional[str],
     history_scores: dict[str, tuple[float, int]],
     click_log_entries: list[dict],
 ):
