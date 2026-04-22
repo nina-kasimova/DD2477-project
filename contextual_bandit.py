@@ -34,7 +34,7 @@ import numpy as np
 MODEL_PATH = Path("bandit_model.json")
 
 # ── hyper-parameters ─────────────────────────────────────────────────────────
-ALPHA_UCB = 3.0       # exploration factor (higher → more exploration)
+ALPHA_UCB = 2.0       # exploration factor (higher → more exploration)
 D = 6                # feature dimension (see _build_features)
 LAMBDA_REG = 1.0       # ridge regression regularisation
 

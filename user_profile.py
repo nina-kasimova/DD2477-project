@@ -191,7 +191,7 @@ def sync_history(es: Elasticsearch, profile_id: str = "default") -> dict:
 
 # Weight given to semantic similarity vs. direct history match within
 # the personalisation component.  0 = only direct match, 1 = only semantic.
-SEMANTIC_WEIGHT = 0.6
+SEMANTIC_WEIGHT = 0.8
 
 
 def personalise(es: Elasticsearch, query: str, main_results: list[dict],
