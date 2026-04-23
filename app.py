@@ -4,7 +4,7 @@ and personalised re-ranking from user click history.
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import timezone, datetime
 from pathlib import Path
 
 from elasticsearch import Elasticsearch, NotFoundError
@@ -210,7 +210,7 @@ def track_click(doc_id):
         log_file.write(
             json.dumps(
                 {
-                    "timestamp": datetime.now(UTC).isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "doc_id": doc_id,
                     "query": query_text,
                     "rank": rank,
@@ -472,4 +472,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"✗ Could not sync history: {exc}")
 
-    app.run(debug=True)
+    app.run(debug=True, port=43210)
