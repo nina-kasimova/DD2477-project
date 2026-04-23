@@ -194,6 +194,10 @@ def sync_history(es: Elasticsearch, profile_id: str = "default") -> dict:
 SEMANTIC_WEIGHT = 0.8
 
 
+PERSONALISED_TAG_MIN_SEMANTIC_SCORE = 0.7
+PERSONALISED_TAG_MAX_SEMANTIC_FRACTION = 0.4
+
+
 def personalise(es: Elasticsearch, query: str, main_results: list[dict],
                 alpha: float = ALPHA, use_bandit: bool = False, profile_id: str = "default") -> list[dict]:
     """
@@ -219,7 +223,8 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
         _semantic_personal_score – semantic similarity to clicked content
         _final_score             – the blended score
         _personal_rank           – rank in the user_history results (None if absent)
-        _boosted                 – bool, whether this result got any boost
+        _boosted                 – bool, whether this result should be visibly tagged
+        _personalised_tag        – same as _boosted, for template readability
     """
     if not main_results:
         return main_results
@@ -236,6 +241,7 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
             hit["_final_score"] = hit["_score"]
             hit["_personal_rank"] = None
             hit["_boosted"] = False
+            hit["_personalised_tag"] = False
         return main_results
 
     # ── 1. Query user history (semantic) ─────────────────────────────
@@ -307,6 +313,10 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
     max_orig = max((h["_score"] for h in main_results), default=1.0) or 1.0
     max_hist = max((s for s, _ in history_scores.values()), default=1.0) or 1.0
     max_sem = max((s for s, _ in semantic_personal_scores.values()), default=1.0) or 1.0
+    semantic_tag_cutoff = max(
+        3,
+        int(len(main_results) * PERSONALISED_TAG_MAX_SEMANTIC_FRACTION + 0.999),
+    )
 
     for hit in main_results:
         orig = hit["_score"]
@@ -326,14 +336,22 @@ def personalise(es: Elasticsearch, query: str, main_results: list[dict],
 
         # Semantic similarity to clicked content
         if doc_id in semantic_personal_scores:
-            sem_score, _ = semantic_personal_scores[doc_id]
+            sem_score, sem_rank = semantic_personal_scores[doc_id]
             norm_sem = sem_score / max_sem
             hit["_semantic_personal_score"] = sem_score
+            hit["_semantic_personal_rank"] = sem_rank
         else:
             norm_sem = 0.0
             hit["_semantic_personal_score"] = 0.0
+            hit["_semantic_personal_rank"] = None
 
-        hit["_boosted"] = norm_hist > 0 or norm_sem > 0
+        strong_semantic_match = (
+            hit["_semantic_personal_rank"] is not None
+            and hit["_semantic_personal_rank"] <= semantic_tag_cutoff
+            and norm_sem >= PERSONALISED_TAG_MIN_SEMANTIC_SCORE
+        )
+        hit["_boosted"] = norm_hist > 0 or strong_semantic_match
+        hit["_personalised_tag"] = hit["_boosted"]
         hit["_original_score"] = orig
 
         # Combined personalisation:

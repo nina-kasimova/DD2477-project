@@ -650,7 +650,7 @@
             {% endif %}
 
             {% for hit in results %}
-                <div class="result {% if hit._boosted %}boosted{% endif %}" id="result-{{ loop.index }}" data-doc-id="{{ hit._id }}" data-score="{{ hit._score }}">
+                <div class="result {% if hit._personalised_tag %}boosted{% endif %}" id="result-{{ loop.index }}" data-doc-id="{{ hit._id }}" data-score="{{ hit._score }}">
                     <h2>
                         <a href="{{ url_for('track_click', doc_id=hit._id, q=query, rank=loop.index, profile_id=profile_id) }}" onclick="sendBanditFeedback('{{ hit._id }}')">
                             {{ hit._source.title }}
