@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch, helpers
 client = Elasticsearch(
-    "https://my-elasticsearch-project-add782.es.us-central1.gcp.elastic.cloud:443",
-    api_key="QWhXaXpwMEJOSEV0eXRtOG55VXM6a0FqdjJ6ODRIN3lxLXAwcXVtMmFvUQ=="
+    "https://my-elasticsearch-project-b9354c.es.us-central1.gcp.elastic.cloud:443",
+    api_key="OXNISnpwMEJGVm1HWmk0aF9SNUI6VVByWWFtUW9scFdwRGhPa2xFYldLUQ=="
 )
 # -----------------------------
 # Define the index name and create index (if it doesn't exist)

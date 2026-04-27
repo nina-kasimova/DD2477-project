@@ -25,8 +25,8 @@ from contextual_bandit import get_model as get_bandit_model, record_impressions_
 
 app = Flask(__name__)
 es = Elasticsearch(
-    "https://my-elasticsearch-project-b7af22.es.us-central1.gcp.elastic.cloud:443",
-    api_key="RDdDRmdwMEI0dlNRLXQyRWhtRVY6UmpFeDNmRGV0dXB4Wk4yb0Fwc25TZw=="
+    "https://my-elasticsearch-project-b9354c.es.us-central1.gcp.elastic.cloud:443",
+    api_key="OXNISnpwMEJGVm1HWmk0aF9SNUI6VVByWWFtUW9scFdwRGhPa2xFYldLUQ=="
 )
 
 
