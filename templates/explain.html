@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BM25 Explanation — {{ doc.title if doc else 'Unknown' }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #1e2130;
+            --border: #2a2d3e;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b0;
+            --text-muted: #6b7084;
+            --accent: #7c8aff;
+            --accent-dim: rgba(124, 138, 255, 0.12);
+            --green: #4ade80;
+            --green-dim: rgba(74, 222, 128, 0.12);
+            --orange: #fb923c;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 28px;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover { color: #a5b0ff; }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+
+        .explain-meta {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .explain-meta span {
+            margin-right: 16px;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        /* ── explanation tree ──────────────────────────────── */
+        .explain-node {
+            margin-left: 16px;
+            padding: 6px 0;
+            border-left: 2px solid var(--border);
+            padding-left: 14px;
+        }
+
+        .explain-node:first-child {
+            margin-left: 0;
+            border-left: none;
+            padding-left: 0;
+        }
+
+        .explain-header {
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .explain-score {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--green);
+            background: var(--green-dim);
+            padding: 2px 10px;
+            border-radius: 8px;
+            font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+            white-space: nowrap;
+        }
+
+        .explain-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .explain-children {
+            margin-top: 4px;
+        }
+
+        .no-explanation {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0 32px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="back-link" href="{{ url_for('search', q=query) }}" id="back-to-search">
+            ← Back to results
+        </a>
+
+        <h1 id="explain-title">
+            {% if doc %}
+                BM25 Explanation: {{ doc.title }}
+            {% else %}
+                BM25 Explanation
+            {% endif %}
+        </h1>
+
+        <div class="explain-meta" id="explain-meta">
+            <span>Query: "<strong>{{ query }}</strong>"</span>
+            <span>BM25 k1={{ bm25.k1 }}, b={{ bm25.b }}</span>
+            <span>Doc ID: {{ doc_id }}</span>
+        </div>
+
+        {% if error %}
+            <div class="error" id="explain-error">{{ error }}</div>
+        {% endif %}
+
+        {% if explanation %}
+            <div id="explanation-tree">
+                {{ render_explanation(explanation) }}
+            </div>
+        {% elif not error %}
+            <div class="no-explanation">
+                No explanation available. Make sure you provided a query.
+            </div>
+        {% endif %}
+
+        <footer>
+            DD2477 Project · Personalized Search Engine
+        </footer>
+    </div>
+</body>
+</html>

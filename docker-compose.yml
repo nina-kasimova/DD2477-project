@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+  app:
+    build: .
+    container_name: flask_app
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5000:5000"
+    environment:
+      - ELASTIC_HOST=http://elasticsearch:9200
