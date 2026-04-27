@@ -42,7 +42,7 @@ If the key expires:
 3. Create a new API key.
 4. Replace the old endpoint and API key in the files above.
 5. Run the indexing script again, ```python test-elastic.py --num-docs 100000```(to index 100,000 documents)
-6. 
+
 If you get auth or connection errors, check:
 
 - wrong or expired API key
