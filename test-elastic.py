@@ -15,8 +15,8 @@ import pandas as pd
 from elasticsearch import Elasticsearch, helpers
 
 es = Elasticsearch(
-    "https://my-elasticsearch-project-b7af22.es.us-central1.gcp.elastic.cloud:443",
-    api_key="RDdDRmdwMEI0dlNRLXQyRWhtRVY6UmpFeDNmRGV0dXB4Wk4yb0Fwc25TZw=="
+    "https://my-elasticsearch-project-add782.es.us-central1.gcp.elastic.cloud:443",
+    api_key="QWhXaXpwMEJOSEV0eXRtOG55VXM6a0FqdjJ6ODRIN3lxLXAwcXVtMmFvUQ=="
 )
 
 INDEX_NAME = "wiki_index"
